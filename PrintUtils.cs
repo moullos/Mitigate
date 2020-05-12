@@ -31,9 +31,14 @@ namespace Mitigate
             Console.WriteLine();
             Console.ResetColor();
         }
+        public static void PrintUsage()
+        {
+            Console.WriteLine("Usage: Mitigate.exe OutFile");
+            Console.WriteLine("       OutFile: The file name of the resulting JSON file. Can be imported into the ATT&CK Navigator for visualisation");
+        }
         public static void PrintInit(string version)
         {
-            Console.WriteLine(String.Format("MITIG&TE v{0} by Panos Moullotou", version));
+            Console.WriteLine(String.Format("Working in progress by moullos (github.com/moullos)", version));
             Console.WriteLine();
         }
         public static void PrintDict(Dictionary<string, double> dict)

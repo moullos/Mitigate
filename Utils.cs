@@ -193,6 +193,28 @@ namespace Mitigate
                 return new string[0];
             }
         }
+        public static bool RegExists(string hive, string path, string value)
+        {
+            Microsoft.Win32.RegistryKey myKey = null;
+            if (hive == "HKLM")
+            {
+                myKey = Registry.LocalMachine.OpenSubKey(path);
+            }
+            else if (hive == "HKU")
+            {
+                myKey = Registry.Users.OpenSubKey(path);
+            }
+            else
+            {
+                myKey = Registry.CurrentUser.OpenSubKey(path);
+            }
+            if (myKey is null)
+                return false;
+            object RegValue = myKey.GetValue(value);
+            if (RegValue is null)
+                return false;
+            return true;
+        }
         public static Dictionary<string, bool> GetRegPermissions(string hive, string path, List<string> SIDs)
         {
             //PrintUtils.PrintInfo(String.Format(@"Checking reg permissions for {0}\{1}", hive, path));

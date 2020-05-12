@@ -1,14 +1,42 @@
-# MITIG&TE (Under development)
-MITIG&TE automatically enumerates Windows settings in order to identify MITRE ATT&CK techniques that are mitigated due to configuration hardening and existing endpoint controls. It heavily relies on the amazing work of the MITRE ATT&CK team and the mitigations defined for each of the techniques. 
+# MITIG&TE
+
+**Machine Interrogation To Identify Gaps & Techniques for Execution**
+
+MITIG&TE automatically enumerates Windows settings in order to identify MITRE ATT&CK techniques mitigated due to configuration hardening and existing endpoint controls. It heavily relies on the amazing work of the MITRE ATT&CK team and the mitigations defined for each of the techniques. 
 
 ## Goals
 
 Over the past couple of years the MITRE ATT&CK framework has been widely adopted by security teams. This tool allows security teams to easily account and track the impact of endpoint configuration hardening and controls have against their threat profile. Use MITIG&TE to:
  - Identify techniques that are currently mitigated/less likely to be executed successfully.
+ - Highlight techniques that can be easily mitigated.
  - Combine with threat intelligence and your existing blue teaming capabilities to get a holistic view of you security posture mapped against ATT&CK
 
-## Quick Start
-Not released yet
+## Quick Start and Example
+If you would like to try MITIG&TE you can either compile it yourself or use the precompiled files in [bin](./bin). 
+
+```
+./Mitigate.exe results.json # Outputs findings into results.json
+
+=====( initial-access )=======================================================================================
+[i] T1566     Phishing........................................................................................
+[*] T1566.001 Spearphishing Attachment........................................................................
+              AV detected?...................................................................................√
+[*] T1566.002 Spearphishing Link..............................................................................
+[*] T1566.003 Spearphishing via Service.......................................................................
+              AV detected?...................................................................................√
+[i] T1078     Valid Accounts..................................................................................
+[*] T1078.001 Default Accounts................................................................................
+[*] T1078.002 Domain Accounts.................................................................................
+              Are domain users local admins?.................................................................X
+[*] T1078.003 Local Accounts..................................................................................
+              LAPS enabled?..................................................................................X
+
+=====( execution )============================================================================================
+...
+```
+
+## Status
+Work in progress.
 
 
 ## Let's make MITIG&TE a reality 

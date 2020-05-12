@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Security.Policy;
 using System.Text;
@@ -12,13 +13,23 @@ namespace Mitigate
     class AttackCTI
     {
         IEnumerable<Technique> WindowsTechniques = null;
-        // Have this pull the file from online
-        public AttackCTI(string ATTACKJSON)
+        public AttackCTI(string Url)
         {
-            using (StreamReader r = new StreamReader(ATTACKJSON))
+            using (var w = new WebClient())
             {
-                string json = r.ReadToEnd();
-                CTIRoot AllAttack = JsonConvert.DeserializeObject<CTIRoot>(json);
+                CTIRoot AllAttack = null ;
+                try
+                {
+                    // Need to find a way to switch to MITRE CTI version instead of the json file
+                    Console.WriteLine("Pulling latest ATT&CK version");
+                    string json = w.DownloadString(Url);
+                    AllAttack = JsonConvert.DeserializeObject<CTIRoot>(json);
+
+                }
+                catch (Exception ex)
+                {
+                    PrintUtils.ExceptionPrint(ex.Message);
+                }
                 Technique[] items = AllAttack.objects;
                 // Filtering all techniques
                 var AllTechniques = items.Where(o => o.type == "attack-pattern" && o.revoked == false);

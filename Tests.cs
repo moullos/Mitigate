@@ -861,8 +861,18 @@ namespace Mitigate
 
             // Check if the key exists
             string RegPath = @"Software\Microsoft\Office test\Special\Perf";
-            Utils.GetRegPermissions("HKLM", RegPath, Program.InterestingUsers);
+            if (!Utils.RegExists("HKCU", RegPath, "Default"))
+            {
+                AddMitigationResult(results, "Create and Harden Registry Key", false);
+            }
+            else
+            {
+                var HavePermissionsToAlter = Utils.GetRegPermissions("HKCU", RegPath, Program.InterestingUsers) is null ? false: true;
+                AddMitigationResult(results, "Create and Harden Registry Key", HavePermissionsToAlter);
+            }
             return results;
         }
+
+        //https://docs.microsoft.com/en-us/microsoft-365/security/office-365-security/detect-and-remediate-outlook-rules-forms-attack?view=o365-worldwide
     }
 }

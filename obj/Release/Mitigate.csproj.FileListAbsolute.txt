@@ -1,0 +1,9 @@
+C:\Users\Panayiotis\source\repos\Mitigate\bin\Release\Mitigate.exe
+C:\Users\Panayiotis\source\repos\Mitigate\bin\Release\Mitigate.pdb
+C:\Users\Panayiotis\source\repos\Mitigate\bin\Release\Newtonsoft.Json.dll
+C:\Users\Panayiotis\source\repos\Mitigate\bin\Release\Newtonsoft.Json.xml
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.csprojAssemblyReference.cache
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.csproj.CoreCompileInputs.cache
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.csproj.CopyComplete
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.exe
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.pdb
