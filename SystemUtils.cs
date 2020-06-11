@@ -1,18 +1,14 @@
-﻿using System;
-using System.Management;
-using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-using System.IO;
-using Microsoft.Win32;
-using System.Runtime.InteropServices;
-using System.Reflection;
+﻿using Microsoft.Win32;
+using NetFwTypeLib;
+using System;
 using System.Collections;
-using System.Dynamic;
-using System.Security.Cryptography.X509Certificates;
+using System.Collections.Generic;
 using System.DirectoryServices.ActiveDirectory;
-using System.CodeDom.Compiler;
-using System.ComponentModel;
+using System.Linq;
+using System.Management;
+using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Mitigate
 {
@@ -75,47 +71,7 @@ namespace Mitigate
 
             return results;
         }
-        // TODO: Move to office utils
-        public static Dictionary<string, bool> GetProtectedViewInfo()
-        {
-            // Currently only works for office 365/2016
-            // All office version as represented in registry keys
-            string[] officeVersions = { "7.0", "8.0", "9.0", "10.0", "11.0", "12.0", "13.0", "14.0", "15.0", "16.0" };
-            string[] office = Utils.GetRegSubkeys("HKLM", @"Software\Microsoft\Office");
-            if (!office.Contains("16.0"))
-            {
-                // office is not installed/not supported version
-                throw new Exception("Office is not installed/not supported version");
-            }
-            Dictionary<string, bool> ProtectedViewInfo = new Dictionary<string, bool>();
-            // Pulling all the setting from the registry
-            string version = "16.0";
-            var pathWord = String.Format(@"Software\Microsoft\Office\{0}\{1}\Security\ProtectedView", version, "Word");
-            var pathExcel = String.Format(@"Software\Microsoft\Office\{0}\{1}\Security\ProtectedView", version, "Excel");
-            var pathPowerPoint = String.Format(@"Software\Microsoft\Office\{0}\{1}\Security\ProtectedView", version, "PowerPoint");
-
-            //https://getadmx.com/?Category=Office2016&Policy=word16.Office.Microsoft.Policies.Windows::L_DoNotOpenFilesFromTheInternetZoneInProtectedView
-            //Check for protected view on files downloaded from the internet
-            ProtectedViewInfo["InternetFiles:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableinternetfilesinpv") == "0");
-            ProtectedViewInfo["InternetFiles:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableinternetfilesinpv") == "0");
-            ProtectedViewInfo["InternetFiles:PPT"] = (Utils.GetRegValue("HKLM", pathExcel, "disableinternetfilesinpv") == "0");
-
-            // Check for protected view on files opened from unsafe locations
-            ProtectedViewInfo["UnsafeLocations:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableunsafelocationsinpv") == "0");
-            ProtectedViewInfo["UnsafeLocations:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableunsafelocationsinpv") == "0");
-            ProtectedViewInfo["UnsafeLocations:PPT"] = (Utils.GetRegValue("HKLM", pathExcel, "disableunsafelocationsinpv") == "0");
-
-            // Check for protected view on files opened from local intranet UNC shares
-            ProtectedViewInfo["Intranet:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableintranetcheck") == "0");
-            ProtectedViewInfo["Intranet:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableintranetcheck") == "0");
-            ProtectedViewInfo["Intranet:PPT"] = (Utils.GetRegValue("HKLM", pathExcel, "disableintranetcheck") == "0");
-
-            // Check for protected view on files opened from OutLook
-            ProtectedViewInfo["Outlook:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableattachmentsinpv") == "0");
-            ProtectedViewInfo["Outlook:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableattachmentsinpv") == "0");
-            ProtectedViewInfo["Outlook:PPT"] = (Utils.GetRegValue("HKLM", pathExcel, "disableattachmentsinpv") == "0");
-            return ProtectedViewInfo;
-        }
+        // TODO: Improve this
         public static Dictionary<string, bool> GetDefaultComPermissions()
         {
             Dictionary<string, bool> DefaultComPermission = new Dictionary<string, bool>();
@@ -134,45 +90,6 @@ namespace Mitigate
                 Console.WriteLine(String.Format("  [X] Exception: {0}", ex));
             }
             return DefaultComPermission;
-        }
-        // TODO: Move to office utils
-        public static Dictionary<string, bool> GetAutomaticDDEExecutionConf()
-        {
-            Dictionary<string, bool> AutomaticDDEExecutionConf = new Dictionary<string, bool>();
-            //TODO - Extend check to other office versions
-            string[] supportedofficeVersions = { "16.0" };
-            string[] office = Utils.GetRegSubkeys("HKCU", @"Software\Microsoft\Office");
-            var version = supportedofficeVersions.AsQueryable().Intersect(office);
-            if (version.Count() == 1)
-            {
-                //https://gist.github.com/wdormann/732bb88d9b5dd5a66c9f1e1498f31a1b
-                var pathWord = String.Format(@"Software\Microsoft\Office\{0}\{1}\Options", version, "Word");
-                AutomaticDDEExecutionConf["Word:Dont update links"] = (Utils.GetRegValue("HKCU", pathWord, "DontUpdateLinks") == "1");
-                var pathWordMail = String.Format(@"Software\Microsoft\Office\{0}\{1}\Options\WordMail", version, "Word");
-                AutomaticDDEExecutionConf["WordMail:Dont update links"] = (Utils.GetRegValue("HKCU", pathWordMail, "DontUpdateLinks") == "1");
-                var pathExcel = String.Format(@"Software\Microsoft\Office\{0}\{1}\Options", version, "Excel");
-                AutomaticDDEExecutionConf["Excel:Dont update links"] = (Utils.GetRegValue("HKCU", pathExcel, "DontUpdateLinks") == "1");
-                AutomaticDDEExecutionConf["Excel:DDE Disabled"] = (Utils.GetRegValue("HKCU", pathExcel, "DDEAllowed") == "0");
-                AutomaticDDEExecutionConf["Excel:DDE Cleaned"] = (Utils.GetRegValue("HKCU", pathExcel, "DDECleaned") == "1");
-                // TODO - Check what this does for version 14.0 and 15.0
-                //AutomaticDDEExecutionConf["Excel:Options"] = (Utils.GetRegValue("HKCU", pathExcel, "Options") == "117");
-            }
-            return AutomaticDDEExecutionConf;
-        }
-        // TODO: Move to office utils.
-        public static Dictionary<string, bool> GetEmbeddedFilesOneNoteConf()
-        {
-            Dictionary<string, bool> EmbeddedFilesOneNoteConf = new Dictionary<string, bool>();
-            string[] supportedofficeVersions = { "15.0", "16.0" };
-            string[] office = Utils.GetRegSubkeys("HKCU", @"Software\Microsoft\Office");
-            var version = supportedofficeVersions.AsQueryable().Intersect(office);
-            if (version.Count() == 1)
-            {
-                //https://gist.github.com/wdormann/732bb88d9b5dd5a66c9f1e1498f31a1b
-                var path = String.Format(@"Software\Microsoft\Office\{0}\OneNote\Options", version.First());
-                EmbeddedFilesOneNoteConf["Embedded Files Disabled"] = (Utils.GetRegValue("HKCU", path, "DisableEmbeddedFiles") == "1");
-            }
-            return EmbeddedFilesOneNoteConf;
         }
         // From WinPEAS: https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/blob/master/winPEAS/winPEASexe/winPEAS/SystemInfo.cs
         // https://getadmx.com/?Category=LAPS&Policy=FullArmor.Policies.C9E1D975_EA58_48C3_958E_3BC214D89A2E::POL_AdmPwd
@@ -209,35 +126,21 @@ namespace Mitigate
                 return true;
             return false;
         }
+
         public static string GetPowershellExecutionPolicy()
         {
             Dictionary<string, string> results = new Dictionary<string, string>();
             // Priority is: Machine Group Policy, Current User Group Policy, Current Session, Current User, Local Machine
 
-            string ScriptsEnabled = "";
             string ExecutionPolicy = "";
             // Machine Group Policy
-            try
-            {
-                ExecutionPolicy = Utils.GetRegValue("HKLM", @"Software\Policies\Microsoft\Windows\PowerShell", "ExecutionPolicy");
-            }
-            catch (Exception ex)
-            {
-                PrintUtils.ErrorPrint(ex.Message);
-            }
+            ExecutionPolicy = Utils.GetRegValue("HKLM", @"Software\Policies\Microsoft\Windows\PowerShell", "ExecutionPolicy");
             if (ExecutionPolicy != "")
             {
                 return ExecutionPolicy;
             }
             // Current User Group Policy
-            try
-            {
-                ExecutionPolicy = Utils.GetRegValue("HKCU", @"Software\Policies\Microsoft\Windows\PowerShell", "ExecutionPolicy");
-            }
-            catch (Exception ex)
-            {
-                PrintUtils.ErrorPrint(ex.Message);
-            }
+            ExecutionPolicy = Utils.GetRegValue("HKCU", @"Software\Policies\Microsoft\Windows\PowerShell", "ExecutionPolicy");
             if (ExecutionPolicy != "")
             {
                 return ExecutionPolicy;
@@ -322,6 +225,7 @@ namespace Mitigate
             Dictionary<string, string> results = new Dictionary<string, string>();
             try
             {
+                // GUID for HNetCfg.FwPolicy2 COM object
                 Type firewall = Type.GetTypeFromCLSID(new Guid("E2B3C97F-6AE1-41AC-817A-F6F92166D7DD"));
                 Object firewallObj = Activator.CreateInstance(firewall);
                 Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(firewallObj));
@@ -340,81 +244,26 @@ namespace Mitigate
             }
             return results;
         }
-        public static List<Dictionary<string, string>> GetFirewallRules()
+        /// <summary>
+        /// Method that retreives enabled and inbound windows firewall rules
+        /// </summary>
+        /// <returns>List of rules</returns>
+        public static List<INetFwRule> GetEnabledFirewallRules()
         {
-            List<Dictionary<string, string>> results = new List<Dictionary<string, string>>();
-            try
+            List<INetFwRule> results = new List<INetFwRule>();
+            // GUID for HNetCfg.FwPolicy2 COM object
+            Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
+            dynamic fwPolicy2 = Activator.CreateInstance(tNetFwPolicy2) as dynamic;
+            var Rules = fwPolicy2.Rules as IEnumerable;
+            foreach (INetFwRule rule in Rules)
             {
-                // TODO: THIS DOES NOT WORK - Need to fix at some point
-                // GUID for HNetCfg.FwPolicy2 COM object
-                Type tNetFwPolicy2 = Type.GetTypeFromProgID("HNetCfg.FwPolicy2");
-                dynamic fwPolicy2 = Activator.CreateInstance(tNetFwPolicy2) as dynamic;
-                IEnumerable Rules = fwPolicy2.Rules as IEnumerable;
-
-                // manually get the enumerator() method
-                System.Collections.IEnumerator enumerator = (System.Collections.IEnumerator)Rules.GetType().InvokeMember("GetEnumerator", BindingFlags.InvokeMethod, null, Rules, null);
-
-                // move to the first item
-                enumerator.MoveNext();
-                Object currentItem = enumerator.Current;
-                while (currentItem != null)
-                {
-                    // only display enabled rules
-                    Object Enabled = currentItem.GetType().InvokeMember("Enabled", BindingFlags.GetProperty, null, currentItem, null);
-                    if (Enabled.ToString() == "True")
-                    {
-                        Object Action = currentItem.GetType().InvokeMember("Action", BindingFlags.GetProperty, null, currentItem, null);
-                        if (Action.ToString() == "0") //Only DENY rules
-                        {
-                            // extract all of our fields
-                            Object Name = currentItem.GetType().InvokeMember("Name", BindingFlags.GetProperty, null, currentItem, null);
-                            Object Description = currentItem.GetType().InvokeMember("Description", BindingFlags.GetProperty, null, currentItem, null);
-                            Object Protocol = currentItem.GetType().InvokeMember("Protocol", BindingFlags.GetProperty, null, currentItem, null);
-                            Object ApplicationName = currentItem.GetType().InvokeMember("ApplicationName", BindingFlags.GetProperty, null, currentItem, null);
-                            Object LocalAddresses = currentItem.GetType().InvokeMember("LocalAddresses", BindingFlags.GetProperty, null, currentItem, null);
-                            Object LocalPorts = currentItem.GetType().InvokeMember("LocalPorts", BindingFlags.GetProperty, null, currentItem, null);
-                            Object RemoteAddresses = currentItem.GetType().InvokeMember("RemoteAddresses", BindingFlags.GetProperty, null, currentItem, null);
-                            Object RemotePorts = currentItem.GetType().InvokeMember("RemotePorts", BindingFlags.GetProperty, null, currentItem, null);
-                            Object Direction = currentItem.GetType().InvokeMember("Direction", BindingFlags.GetProperty, null, currentItem, null);
-                            Object Profiles = currentItem.GetType().InvokeMember("Profiles", BindingFlags.GetProperty, null, currentItem, null);
-
-                            string ruleAction = "ALLOW";
-                            if (Action.ToString() != "1")
-                                ruleAction = "DENY";
-
-                            string ruleDirection = "IN";
-                            if (Direction.ToString() != "1")
-                                ruleDirection = "OUT";
-
-                            string ruleProtocol = "TCP";
-                            if (Protocol.ToString() != "6")
-                                ruleProtocol = "UDP";
-
-                            Dictionary<string, string> rule = new Dictionary<string, string> { };
-                            rule["Name"] = String.Format("{0}", Name);
-                            rule["Description"] = String.Format("{0}", Description);
-                            rule["AppName"] = String.Format("{0}", ApplicationName);
-                            rule["Protocol"] = String.Format("{0}", ruleProtocol);
-                            rule["Action"] = String.Format("{0}", ruleAction);
-                            rule["Direction"] = String.Format("{0}", ruleDirection);
-                            rule["Profiles"] = String.Format("{0}", Int32.Parse(Profiles.ToString()));
-                            rule["Local"] = String.Format("{0}:{1}", LocalAddresses, LocalPorts);
-                            rule["Remote"] = String.Format("{0}:{1}", RemoteAddresses, RemotePorts);
-                            results.Add(rule);
-                        }
-                    }
-                    // manually move the enumerator
-                    enumerator.MoveNext();
-                    currentItem = enumerator.Current;
-                }
+                if (rule.Enabled && rule.Direction == NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_IN)
+                    results.Add(rule);
             }
-            catch (Exception ex)
-            {
-                PrintUtils.ErrorPrint("Couldn't get firewall rules");
-                PrintUtils.ExceptionPrint(ex.Message);
-            }
+            // return only enabled
             return results;
         }
+
         public static Dictionary<string, string> GetBITSJobLifetime()
         {
             Dictionary<string, string> results = new Dictionary<string, string>();
@@ -489,15 +338,22 @@ namespace Mitigate
         }
         public static bool IsSafeDllSafeSearchModeOn()
         {
-            return Utils.GetRegValue("HKLM", @"System\CurrentControlSet\Control\Session Manager", "SafeDllSearchMode ") == "1";
+            var RegValue = Utils.GetRegValue("HKLM", @"System\CurrentControlSet\Control\Session Manager", "SafeDllSearchMode ");
+            if (RegValue == "")
+            {
+                // Default value is on
+                return true;
+            }
+            return RegValue == "1" ? true : false;
         }
         public static Dictionary<string, bool> GetWinlogonRegPermissions()
         {
+            // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order?redirectedfrom=MSDN
             Dictionary<string, bool> regPermResults = new Dictionary<string, bool>();
             var regPath = @"Software\Microsoft\Windows NT\CurrentVersion\Winlogon";
-            var RegPermissions = Utils.GetRegPermissions("HKLM", regPath, Program.InterestingUsers);
+            var RegPermissions = Utils.GetRegPermissions("HKLM", regPath, Program.InterestingSIDs);
             regPermResults["HKLM"] = RegPermissions == null ? true : false;
-            RegPermissions = Utils.GetRegPermissions("HKCU", regPath, Program.InterestingUsers);
+            RegPermissions = Utils.GetRegPermissions("HKCU", regPath, Program.InterestingSIDs);
             regPermResults["HKCU"] = RegPermissions == null ? true : false;
             return regPermResults;
         }
@@ -520,15 +376,36 @@ namespace Mitigate
             }
             return false;
         }
+        public static bool IsChromePasswordManagerDisabled()
+        {
+            // https://cloud.google.com/docs/chrome-enterprise/policies/?policy=PasswordManagerEnabled
+            var RegValue = Utils.GetRegValue("HKLM", @"Software\Policies\Google\Chrome", "PasswordManagerEnabled");
+            return RegValue == "1" ? true : false;
+        }
+
+        /// <summary>
+        /// Checks if external extensions are blocked by Chrome
+        /// </summary>
+        /// <returns> True if blocked, false if not</returns>
         public static bool IsChromeExternalExtectionsBlocked()
         {
             //https://cloud.google.com/docs/chrome-enterprise/policies/?policy=BlockExternalExtensions
             return Utils.GetRegValue("HKLM", @"Software\Policies\Google\Chrome\", "BlockExternalExtensions") == "1" ? true : false;
         }
+
+        /// <summary>
+        /// Checks if Screen Savers are disabled
+        /// </summary>
+        /// <returns>True if disabled, false if not</returns>
         public static bool IsScreenSaverDisabled()
         {
             return Utils.GetRegValue("HKLM", @"Software\Policies\Microsoft\Windows\Control Panel\Desktop", "ScreenSaveActive") == "0";
         }
+
+        /// <summary>
+        /// Checks if RDP network level authentication is enforced.
+        /// </summary>
+        /// <returns>True if enabled, false if not</returns>
         public static bool IsRdpNLAEnabled()
         {
             return Utils.GetRegValue(
@@ -537,6 +414,11 @@ namespace Mitigate
                 "UserAuthentication")
                 == "1";
         }
+
+        /// <summary>
+        /// Checks is secureboot is enabled
+        /// </summary>
+        /// <returns>True if enabled, false if not </returns>
         public static bool IsSecureBootEnabled()
         {
             return Utils.GetRegValue(
@@ -544,6 +426,152 @@ namespace Mitigate
                 @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecureBoot\State",
                 "UEFISecureBootEnabled")
                 == "1";
+        }
+
+        /// <summary>
+        /// Checks if a hotfix is installed using WMIC
+        /// </summary>
+        /// <param name="HotFixID"></param>
+        /// <returns>True if installed, false if not</returns>
+        public static bool IsHotFixInstalled(string HotFixID)
+        {
+            string wmipathstr = @"\\" + Environment.MachineName + @"\root\cimv2";
+
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(wmipathstr, "SELECT * FROM Win32_QuickFixEngineering WHERE HotFixID='" + HotFixID + "'");
+            ManagementObjectCollection instances = searcher.Get();
+            if (instances.Count == 1)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the version of the OS through WMIC
+        /// </summary>
+        /// <returns>A string with the version</returns>
+        public static string GetOSVersion()
+        {
+            string wmipathstr = @"\\" + Environment.MachineName + @"\root\cimv2";
+
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(wmipathstr, "SELECT Version FROM Win32_OperatingSystem");
+            ManagementObjectCollection instances = searcher.Get();
+            foreach (ManagementObject test in instances)
+            {
+                return test["Version"].ToString();
+            }
+            // Should never reach this. In case it does:
+            throw new Exception("Couldn't get windows version");
+        }
+
+        public static bool IsSafeDLLSearchEnabled()
+        {
+            var RegPath = @"System\CurrentControlSet\Control\Session Manager";
+            var RegKey = "SafeDllSearchMode ";
+
+            var RegValue = Utils.GetRegValue("HKLM", RegPath, RegKey);
+            if (RegValue != "0")
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public static bool IsUACSetToDefaultDeny()
+        {
+
+            // Consent Behaviour Settings
+            var RegPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+            var RegName = @"ConsentPromptBehaviorUser";
+
+            // If equals 0 all UAC is automatically declined
+            return Utils.GetRegValue("HKLM", RegPath, RegName) == "0" ? true : false;
+
+        }
+
+        public static bool IsOutboundNTLMDisabled()
+        {
+            var RegPath = @"System\CurrentControlSet\Control\Lsa\MSV1_0";
+            var RegName = "RestrictSendingNTLMTraffic";
+
+            return Utils.GetRegValue("HKLM", RegPath, RegName) == "2" ? true : false;
+        }
+
+        public static bool IsDCOMDisabled()
+        {
+            var RegPath = @"Software\Microsoft\OLE";
+            var RegName = "EnableDCOM";
+
+            return Utils.GetRegValue("HKLM", RegPath, RegName) == "N" ? true : false;
+        }
+
+        public static bool IsRDPDisabled()
+        {
+            var RegPath = @"SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services";
+            var RegName = "fDenyTSConnections";
+
+            return Utils.GetRegValue("HKLM", RegPath, RegName) == "1" ? true : false;
+        }
+
+        public static Dictionary<string,bool> GetRDPSessionConfig()
+        {
+            Dictionary<string, bool> config = new Dictionary<string, bool>();
+
+            // Firstly check if RDP is configured to end sessions when time limits are reached
+            // https://getadmx.com/?Category=Windows_10_2016&Policy=Microsoft.Policies.TerminalServer::TS_Session_End_On_Limit_2
+
+            var RegPath = @"SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services";
+
+            // 1. Max Idle Time
+            var MaxIdleTimeStr = Utils.GetRegValue("HKLM", RegPath, "MaxIdleTime");
+            try
+            {
+                var MaxIdleTime = int.Parse(MaxIdleTimeStr);
+                if (MaxIdleTime >= 60000)
+                    config["MaxIdleTime"] = true;
+                else
+                    config["MaxIdleTime"] = false;
+            }
+            catch (Exception)
+            {
+                config["MaxIdleTime"] = false;
+            }
+
+            // 2. Max Session Time
+            var MaxConnectionTimeStr = Utils.GetRegValue("HKLM", RegPath, "MaxConnectionTime");
+            try
+            {
+                var MaxIdleTime = int.Parse(MaxIdleTimeStr);
+                if (MaxIdleTime >= 60000)
+                    config["MaxConnectionTime"] = true;
+                else
+                    config["MaxConnectionTime"] = false;
+            }
+            catch (Exception)
+            {
+                config["MaxConnectionTime"] = false;
+            }
+
+            return config;
+        }
+
+        public static bool IsWinrmGPODefined()
+        {
+            string RegPath = @"Software\Policies\Microsoft\Windows\WinRM\Service";
+            string RegKey = "AllowAutoConfig";
+
+            return Utils.GetRegValue("HKLM", RegPath, RegKey) == "1" ? true : false;
+        }
+
+        public static bool IsWinRMFilteredByGPO()
+        {
+            if (IsWinrmGPODefined()) 
+            {
+                string RegPath = @"Software\Policies\Microsoft\Windows\WinRM\Service";
+                var IPv4Filter = Utils.GetRegValue("HKLM", RegPath, "IPv4Filter");
+                return IPv4Filter != "*" ? true : false;
+            }
+            return false;
         }
     }
 }

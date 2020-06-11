@@ -13,6 +13,9 @@ namespace Mitigate
     class AttackCTI
     {
         IEnumerable<Technique> WindowsTechniques = null;
+        IEnumerable<Technique> MitigationRelationships = null;
+        IEnumerable<Technique> Mitigations = null;
+
         public AttackCTI(string Url)
         {
             using (var w = new WebClient())
@@ -20,8 +23,8 @@ namespace Mitigate
                 CTIRoot AllAttack = null ;
                 try
                 {
-                    // Need to find a way to switch to MITRE CTI version instead of the json file
-                    Console.WriteLine("Pulling latest ATT&CK version");
+                    // Need to find a way to switch to MITRE TAXII server instead of the json file
+                    Console.WriteLine("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
                     string json = w.DownloadString(Url);
                     AllAttack = JsonConvert.DeserializeObject<CTIRoot>(json);
 
@@ -35,6 +38,9 @@ namespace Mitigate
                 var AllTechniques = items.Where(o => o.type == "attack-pattern" && o.revoked == false);
                 // Getting all win techniques
                 WindowsTechniques = AllTechniques.Where(o => o.x_mitre_platforms.Contains("Windows"));
+                // Getting all windows mitigations
+                MitigationRelationships = items.Where(o => o.type == "relationship" && o.relationship_type == "mitigates");
+                Mitigations = items.Where(o => o.type == "course-of-action"); 
             }
         }
         public IEnumerable<string> GetAllTechniqueIDs()
@@ -44,6 +50,7 @@ namespace Mitigate
         public IEnumerable<string> GetAllTactics()
         {
             return new string[] { "initial-access", "execution", "persistence", "privilege-escalation", "defense-evasion", "credential-access", "discovery", "lateral-movement", "collection", "command-and-control", "exfiltration", "impact" };
+            // Dymanically doing this messes with the ordering of the tactics...
             HashSet<string> TacticNames = new HashSet<string>();
             foreach (Technique t in WindowsTechniques)
                 foreach (var phase in t.kill_chain_phases)
@@ -59,6 +66,18 @@ namespace Mitigate
         public IEnumerable<Technique> GetSubTechniquesByTechnique(Technique technique)
         {
             return WindowsTechniques.Where(o => o.GetID().StartsWith(technique.GetID() + "."));
+        }
+        public bool DoesItHaveMitigations(Technique technique)
+        {
+            string StixID = technique.id;
+            // Get all the source references for the technique mitigations
+            var TechniqueMitSourceRef = MitigationRelationships.Where(o => o.target_ref == StixID).Select(o => o.source_ref);
+            // Get all the non-deprecated mitigations for it
+            var TechniqueMitigations = Mitigations.Where(o => TechniqueMitSourceRef.Contains(o.id) && o.x_mitre_deprecated == false);
+            if (TechniqueMitigations.Count() > 0)
+                return true;
+            else
+                return false;
         }
         internal class CTIRoot
         {
@@ -134,6 +153,7 @@ namespace Mitigate
     public class Kill_Chain_Phases
     {
         public string kill_chain_name { get; set; }
+
         public string phase_name { get; set; }
     }
 }

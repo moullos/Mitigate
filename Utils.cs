@@ -9,6 +9,8 @@ using System.Security.Principal;
 using System.IO;
 using System.DirectoryServices.AccountManagement;
 using System.Data;
+using System.CodeDom.Compiler;
+using System.ServiceProcess;
 
 namespace Mitigate
 {
@@ -250,31 +252,32 @@ namespace Mitigate
                             results[SID] = true;
                             continue;
                         }
-                        /*
+                    /*
                     SecurityIdentifier UserSID = new SecurityIdentifier(SID);
                     SecurityIdentifier RuleSID = new SecurityIdentifier(rule.IdentityReference.Value);
-                    if (RuleSID.IsAccountSid())
+                    if (RuleSID.Value == UserSID.Value)
                     {
-                        if (RuleSID.Value == UserSID.Value)
-                        {
                             results[SID] = true;
                             continue;
-
-                        }
                     }
                     else
                     {
                         PrincipalContext ctx = new PrincipalContext(ContextType.Machine);
                         GroupPrincipal group = GroupPrincipal.FindByIdentity(ctx, RuleSID.Value);
-                        foreach (Principal p in group.Members)
-                            if (p.Sid == UserSID)
-                            {
-                                results[SID] = true;
-                                continue;
-                            }
+                        if (group!= null)
+                         {
+                            foreach (Principal p in group.Members)
+                                if (p.Sid.Value == UserSID.Value)
+                                {
+                                    results[SID] = true;
+                                    continue;
+                                }
+                         }
+
                     }
                     */
                     }
+                    
                 }
                 return results;
             }
@@ -407,5 +410,88 @@ namespace Mitigate
             }
             return "";
         }
+
+        public List<GroupPrincipal> Sid2Group(List<string> SIDs)
+        {
+            List<GroupPrincipal> Groups = new List<GroupPrincipal>();
+
+            PrincipalContext MachineContext = new PrincipalContext(ContextType.Machine);
+            PrincipalContext DomainContext = Program.IsDomainJoined ? new PrincipalContext(ContextType.Domain) : null;
+            foreach (string SID in SIDs)
+            {
+                // Checking if the SID corresponds to a machine group
+                GroupPrincipal Group = GroupPrincipal.FindByIdentity(MachineContext, IdentityType.Sid, SID);
+                if (Group != null)
+                {
+                    Groups.Add(Group);
+                    continue;
+                }
+                // Checking if the SID corresponds to a domain group
+                if (Program.IsDomainJoined)
+                {
+                    Group = GroupPrincipal.FindByIdentity(DomainContext, IdentityType.Sid, SID);
+                    if (Group != null)
+                    {
+                        Groups.Add(Group);
+                    }
+                }
+            }
+            return Groups;
+        }
+
+        public static Dictionary<string, string> GetServiceConfig(string ServiceName)
+        {
+            Dictionary<string, string> results = new Dictionary<string, string>();
+
+
+            // Unfortunately the ServiceController class does not provide the startUpType.
+            // So we pull it directly from the register
+
+            var RegPath = @"\SYSTEM\CurrentControlSet\Services\WinRM";
+            var RegName = @"Start";
+
+            string StartUpTypeValue = Utils.GetRegValue("HKLM", RegPath, RegName);
+
+            results["StartUpType"] = StartType2String(StartUpTypeValue);
+
+
+            return results;
+        }
+
+        private static string StartType2String(string StartUpTypeValue)
+        {
+            string startupType = string.Empty;
+
+            switch (StartUpTypeValue)
+            {
+                case "0":
+                    startupType = "BOOT";
+                    break;
+
+                case "1":
+                    startupType = "SYSTEM";
+                    break;
+
+                case "2":
+                    startupType = "AUTOMATIC";
+                    break;
+
+                case "3":
+                    startupType = "MANUAL";
+                    break;
+
+                case "4":
+                    startupType = "DISABLED";
+                    break;
+
+                default:
+                    startupType = "UNKNOWN";
+                    break;
+
+            }
+            return startupType;
+        }
+
+
     }
 }

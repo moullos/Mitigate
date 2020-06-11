@@ -41,7 +41,7 @@ Current coverage [here](https://mitre-attack.github.io/attack-navigator/beta/ent
 
 
 ## Let's make MITIG&TE a reality 
-Currently MITIG&TE is under development and only covers a small number of ATT&CK techniques. I will be gradually expanding coverage (as availability allows). If you would like to contribute please contact me. 
+Currently MITIG&TE is under development and only covers a small number of ATT&CK techniques. I will be gradually expanding coverage (as availability allows). If you would like to contribute please [contact me](https://t.me/moullos). 
 
 ## Disclaimer
 I am not a software development so I apologise in advance for the state of the code. Hopefully, I will be able to focus a bit more on my code cleanliness and add more comments in the future.

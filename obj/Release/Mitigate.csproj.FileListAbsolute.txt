@@ -7,3 +7,5 @@ C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.csproj.CoreCompil
 C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.csproj.CopyComplete
 C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.exe
 C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.pdb
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Interop.NetFwTypeLib.dll
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Release\Mitigate.csproj.ResolveComReference.cache

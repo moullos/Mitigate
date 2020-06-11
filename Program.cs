@@ -9,20 +9,28 @@ using System.Security.Policy;
 
 namespace Mitigate
 {
+    /*
+     * TODO:
+     * - REDO Com Settings Retrieval Method
+     * - ArgParser
+     */
     class Program
     {
+
         // CLI ARGS TO BE
+        public static bool ShowUnmitigatableTechniques = true;
         public static bool verbose = false;
-        public static bool ExportCoverage = true;
+        public static bool ExportCoverage = false;
         public static string Url = @"https://raw.githubusercontent.com/mitre/cti/subtechniques/enterprise-attack/enterprise-attack.json";
 
-        public static List<string> InterestingUsers;
+        public static List<string> InterestingSIDs;
         public static bool IsDomainJoined;
         public static string version="WIP";
+
+        
         public static void Main(string[] args)
         {
-
-
+            SystemUtils.GetOSVersion();
             /////////////////////
             /// Initial setup ///
             /////////////////////
@@ -32,6 +40,8 @@ namespace Mitigate
                 System.Environment.Exit(1);
             }
             string Outfile = args[0];
+
+
             PrintUtils.PrintBanner();
             PrintUtils.PrintInit(version);
             AttackCTI ATTCK = new AttackCTI(Url);
@@ -39,7 +49,7 @@ namespace Mitigate
 
 
             Console.WriteLine("Collecting some machine information. This might take some time...");
-            InterestingUsers = UserUtils.GetInterestingUsers();
+            InterestingSIDs = UserUtils.GetInterestingSIDs();
             IsDomainJoined = SystemUtils.IsDomainJoined();
 
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -58,7 +68,7 @@ namespace Mitigate
                     // Check if the technique has been already tested 
                     if (TestedTechniques.Contains(technique.GetID()))
                     {
-                        // If it has:
+                        // If it has: 
                         continue;
                     }
                     TestedTechniques.Add(technique.GetID());
@@ -67,12 +77,12 @@ namespace Mitigate
                     if (subtechniques.Count() > 0)
                     {
                         // Subtechniques found. Handle them
-                        Tests.Execute(technique, subtechniques, navigator);
+                        Tests.Execute(technique, subtechniques, navigator, ATTCK);
                     }
                     else
                     {
                         // No subtechniques. Just handle root technique
-                        Tests.Execute(technique, navigator);
+                        Tests.Execute(technique, navigator, ATTCK);
                     }
                 }
             }

@@ -7,3 +7,5 @@ C:\Users\Panayiotis\source\repos\Mitigate\bin\Debug\Newtonsoft.Json.xml
 C:\Users\Panayiotis\source\repos\Mitigate\obj\Debug\Mitigate.csproj.CopyComplete
 C:\Users\Panayiotis\source\repos\Mitigate\obj\Debug\Mitigate.exe
 C:\Users\Panayiotis\source\repos\Mitigate\obj\Debug\Mitigate.pdb
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Debug\Interop.NetFwTypeLib.dll
+C:\Users\Panayiotis\source\repos\Mitigate\obj\Debug\Mitigate.csproj.ResolveComReference.cache

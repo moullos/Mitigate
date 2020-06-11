@@ -1,22 +1,34 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Permissions;
 using System.Text;
 
 namespace Mitigate
 {
 
 
-    public static class ColorPallete
+    public static class ColorPalette
     {
-        public static string Red = "#f4a261";
-        public static string Amber = "#e9c46a";
-        public static string Green = "#2a9d8f";
+        public static string NoMitigationsDetected = "#f4a261";
+        public static string SomeMitigations = "#e9c46a";
+        public static string AllMItigationDetected = "#2a9d8f";
         public static string White = "#ffffff";
-        public static string Blue = "#009ACD";
+        public static string NoMitigationsAvailable = "#009ACD";
+        public static string Covered = "#009ACD";
+        public static string Error = "#d62c08";
+
+    }
+
+    public class Layout
+    {
+        public string layout { get; set; }
+        public bool showID { get; set; }
+        public bool showName { get; set; }
     }
 
     public class Filters
@@ -35,7 +47,9 @@ namespace Mitigate
         public string name { get; set; }
         public string value { get; set; }
     }
-
+    /// <summary>
+    /// Navigator Technique object matching the technique format expected by the ATT&CK navigator
+    /// </summary>
     public class NTechnique
     {
         public string techniqueID { get; set; }
@@ -44,76 +58,101 @@ namespace Mitigate
         public double score { get; set; }
         public IList<Metadata> metadata { get; set; }
         //Constructor for root techniques with subtechniques
-        public NTechnique(string rootTechniqueID, List<double> subTechniqueScores)
+        public NTechnique(string rootTechniqueID, List<string> subTechniquesColors)
         {
             this.techniqueID = rootTechniqueID;
-            this.PopulateColor(subTechniqueScores);
-            this.enabled = true;
+            this.color = this.PopulateColor(subTechniquesColors);
+            if (this.color == ColorPalette.NoMitigationsAvailable)
+                this.enabled = Program.ShowUnmitigatableTechniques;
+            else
+                this.enabled = true;
             this.metadata = new List<Metadata>();
         }
         // Constructor for sub techniques and root techniques for not subtechniques. 
         public NTechnique(string techniqueID, Dictionary<string, Mitigation> results)
         {
             this.techniqueID = techniqueID;
-            this.PopulateColor(results);
-            this.enabled = true;
+            this.color = this.PopulateColor(results);
+            if (this.color == ColorPalette.NoMitigationsAvailable)
+                this.enabled = Program.ShowUnmitigatableTechniques;
+            else
+                this.enabled = true;
             this.PopulateMetadata(results);
         }
-        private void PopulateMetadata(Dictionary<string, Mitigation> results)
+        /// <summary>
+        /// Technique metadata contains the mitigation info gathered by the tool. This takes the MitigationInfo and populates the navigator technique metadata
+        /// </summary>
+        /// <param name="MitigationInfo">The mitigation info gather by the tool for a particular technique</param>
+        private void PopulateMetadata(Dictionary<string, Mitigation> MitigationInfo)
         {
             this.metadata = new List<Metadata>();
-            foreach (KeyValuePair<string, Mitigation> entry in results)
+            foreach (KeyValuePair<string, Mitigation> entry in MitigationInfo)
             {
                 this.metadata.Add(new Metadata("-" + entry.Key, entry.Value.ToString()));
             }
         }
-        private void PopulateColor(Dictionary<string, Mitigation> results)
+        /// <summary>
+        /// Method that sets the Color of a Technique in the navigator based on the info collected. 
+        /// Applies to subtechniques or techniques with no subtechniques
+        /// </summary>
+        /// <param name="MitigationInfo">>The mitigation info gather by the tool for a particular technique</param>
+        private string PopulateColor(Dictionary<string, Mitigation> MitigationInfo)
         {
             // Method that generated a score/color based on the results.
-            // Valid colors are Red, Amber, Green
-            List<Mitigation> allResults = results.Values.ToList();
-            allResults.RemoveAll(isNAorNotImplemented);
-            // If all results are NA and not implemented
-            if (allResults.Count == 0)
-            {
-                this.color = ColorPallete.White;
-                return;
-            }
-            this.score = allResults.Average(x => (int)x);
-            if (score == 2.0)
-            {
-                this.color = ColorPallete.Green;
-            }
-            else if (score == 0.0)
-            {
-                this.color = ColorPallete.Red;
-            }
-            else
-            {
-                this.color = ColorPallete.Amber;
-            }
+            List<Mitigation> MitigationResults = MitigationInfo.Values.ToList();
 
-            bool isNAorNotImplemented(Mitigation r)
-            {
-                return (r == Mitigation.NA | r == Mitigation.TestNotImplemented);
-            }
+            if (MitigationResults.Count() == 0)
+                return ColorPalette.White;
+
+            if (MitigationResults.Count() == 1 && MitigationResults[0] == Mitigation.TestNotImplemented)
+                return ColorPalette.White;
+            
+                    // Check if the technique cannot be mitigated
+            if (MitigationResults.Count() == 1 && MitigationResults[0] == Mitigation.NoMitigationAvailable)
+                return ColorPalette.NoMitigationsAvailable;
+
+            // if all mitigations are applied
+            if (MitigationResults.All(o => o == Mitigation.True))
+                return ColorPalette.AllMItigationDetected;
+
+            // if at least some mitigations are applied
+            if (MitigationResults.Contains(Mitigation.True) || MitigationResults.Contains(Mitigation.Partial))
+                return ColorPalette.SomeMitigations;
+
+            // Else no mitigations are applied or none where detected. 
+            return ColorPalette.NoMitigationsDetected;
         }
-        private void PopulateColor(List<double> subTechniquesScore)
+
+        /// <summary>
+        /// Method that sets the Color of a rootTechnique based on the colour of the subtechniques
+        /// </summary>
+        /// <param name="subTechniquesColors">List of the colours of the other subtechniques</param>
+        private string PopulateColor(List<string> subTechniquesColors)
         {
-            this.score = subTechniquesScore.Average();
-            if (score == 2.0)
-            {
-                this.color = ColorPallete.Green;
-            }
-            else if (score == 0.0)
-            {
-                this.color = ColorPallete.Red;
-            }
-            else
-            {
-                this.color = ColorPallete.Amber;
-            }
+            // If all subtehcniques are fully mitigated, then root technique is fully mitigated;
+            if (subTechniquesColors.All(o => o == ColorPalette.AllMItigationDetected))
+                return ColorPalette.AllMItigationDetected;
+            // If all are not mitigated
+            if (subTechniquesColors.All(o => o == ColorPalette.NoMitigationsDetected))
+                return ColorPalette.NoMitigationsDetected;
+            // If all cannot be mitigated
+            if (subTechniquesColors.All(o => o == ColorPalette.NoMitigationsAvailable))
+                return ColorPalette.NoMitigationsAvailable;
+            // If no tests are defined or can't be mitigated
+            if (subTechniquesColors.All(o => o == ColorPalette.NoMitigationsAvailable || o == ColorPalette.White))
+                return ColorPalette.White;
+            return ColorPalette.SomeMitigations;
         }
+    }
+    public class Legenditem
+    {
+        public Legenditem(string label, string color)
+        {
+            this.label = label;
+            this.color = color;
+        }
+        public string label { get; set; }
+        public string color { get; set; }
     }
 
     public class Gradient
@@ -131,7 +170,9 @@ namespace Mitigate
         public string domain { get; set; }
         public string description { get; set; }
         public Filters filters = new Filters();
+        public Layout layout = new Layout();
         public int sorting { get; set; }
+        public IList<Legenditem> legendItems = new List<Legenditem>();
         public int viewMode { get; set; }
         public IList<NTechnique> techniques = new List<NTechnique>();
         public Gradient gradient = new Gradient();
@@ -140,6 +181,9 @@ namespace Mitigate
         public string tacticRowBackground { get; set; }
         public bool selectTechniquesAcrossTactics { get; set; }
         public bool hideDisabled { get; set; }
+        /// <summary>
+        /// Navigator constructor setting up some required values
+        /// </summary>
         public Navigator()
         {
             filters.stages = new List<string>();
@@ -155,10 +199,30 @@ namespace Mitigate
             gradient.colors = new List<string>() { "#ffffff", "#4dd2fb", "#0c1b33" };
             showTacticRowBackground = false;
             tacticRowBackground = "#dddddd";
-
             selectTechniquesAcrossTactics = true;
             hideDisabled = true;
+            layout.layout = "flat";
+            this.CreateLegend();
+
         }
+        public void CreateLegend()
+        {
+            var items = new Dictionary<string,string>
+            {
+                { "All mitigations were detected", ColorPalette.AllMItigationDetected },
+                { "Some mitigations were detected", ColorPalette.SomeMitigations },
+                { "No mitigation were detected", ColorPalette.NoMitigationsDetected },
+                { "Technique can't be mitigated", ColorPalette.NoMitigationsAvailable }
+            };
+            foreach (var item in items)
+            {
+                legendItems.Add(new Legenditem(item.Key, item.Value));
+            }
+        }
+        /// <summary>
+        /// Method that creates a JSON file containing the results that can be ingested for the ATT&CK navigator
+        /// </summary>
+        /// <param name="filename">Filename to export the JSON to</param>
         public void ToJSON(string filename)
         {
             string JSONresult = JsonConvert.SerializeObject(this);
@@ -168,6 +232,10 @@ namespace Mitigate
                 tw.Close();
             }
         }
+        /// <summary>
+        /// Method that creates a JSON file summarizing the technique coverage of the tool. 
+        /// </summary>
+        /// <param name="filename">Filename to export the JSON to</param>
         public void ExportCoverage(string filename)
         {
             this.name = "Coverage";
@@ -176,7 +244,7 @@ namespace Mitigate
             {
                 technique.metadata.Clear();
                 technique.score = 0;
-                technique.color = ColorPallete.Blue;
+                technique.color = ColorPalette.Covered;
             }
             string JSONresult = JsonConvert.SerializeObject(this);
             using (var tw = new StreamWriter(filename))
@@ -184,31 +252,31 @@ namespace Mitigate
                 tw.WriteLine(JSONresult.ToString());
                 tw.Close();
             }
-
         }
         // Method for adding techniques with no subtecniques
-        public void AddResults(string techniqueID, Dictionary<string, Mitigation> results)
+        public void AddMitigationInfo(Technique technique, Dictionary<string, Mitigation> MitigationInfo)
         {
-
-            NTechnique technique = new NTechnique(techniqueID, results);
-            this.techniques.Add(technique);
+            // Creating a new navigation technique object for the technique
+            NTechnique NavigatorTechnique = new NTechnique(technique.GetID(), MitigationInfo);
+            // Adding the technique to the list of processed techniques
+            this.techniques.Add(NavigatorTechnique);
         }
         // Method for adding technique with subtechniques
-        public void AddResults(string rootTechniqueID, List<string> subTechniqueIDs, List<Dictionary<string, Mitigation>> subTechniqueResults)
+        public void AddMitigationInfo(Technique rootTechnique, List<string> subTechniqueIDs, List<Dictionary<string, Mitigation>> subTechniqueResults)
         {
-            List<double> subTechniquesScores = new List<double>();
+            List<string> subTechniquesColors = new List<string>();
             // Adding subtechniques
             foreach (var item in subTechniqueIDs.Zip(subTechniqueResults, Tuple.Create))
             {
                 var subTechniqueID = item.Item1;
-                var results = item.Item2;
-                NTechnique subTechnique = new NTechnique(subTechniqueID, results);
+                var MitigationInfo = item.Item2;
+                NTechnique subTechnique = new NTechnique(subTechniqueID, MitigationInfo);
                 this.techniques.Add(subTechnique);
-                subTechniquesScores.Add(subTechnique.score);
+                subTechniquesColors.Add(subTechnique.color);
             }
             // Adding root technique
-            NTechnique rootTechnique = new NTechnique(rootTechniqueID, subTechniquesScores);
-            this.techniques.Add(rootTechnique);
+            NTechnique NavigatorRootTechnique = new NTechnique(rootTechnique.GetID(), subTechniquesColors);
+            this.techniques.Add(NavigatorRootTechnique);
         }
     }
 }

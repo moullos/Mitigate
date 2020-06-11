@@ -7,6 +7,9 @@ namespace Mitigate
 {
     class PrintUtils
     {
+        /// <summary>
+        /// Prints the MITIG&TE Banner
+        /// </summary>
         public static void PrintBanner()
         {
             Console.WriteLine(@" 
@@ -36,9 +39,13 @@ namespace Mitigate
             Console.WriteLine("Usage: Mitigate.exe OutFile");
             Console.WriteLine("       OutFile: The file name of the resulting JSON file. Can be imported into the ATT&CK Navigator for visualisation");
         }
+        /// <summary>
+        /// Prints the MITIG&TE initation message
+        /// </summary>
+        /// <param name="version">MITIG&TE's version</param>
         public static void PrintInit(string version)
         {
-            Console.WriteLine(String.Format("Working in progress by moullos (github.com/moullos)", version));
+            Console.WriteLine(String.Format("Work in progress by moullos (github.com/moullos)", version));
             Console.WriteLine();
         }
         public static void PrintDict(Dictionary<string, double> dict)
@@ -173,7 +180,7 @@ namespace Mitigate
                 Console.WriteLine("X");
                 Console.ResetColor();
             }
-            else if (result == Mitigation.NoMitigationAvailable)
+            else if (result == Mitigation.NoMitigationAvailable || result == Mitigation.NA)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.WriteLine(".");
