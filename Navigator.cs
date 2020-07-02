@@ -1,12 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Security.Permissions;
-using System.Text;
 
 namespace Mitigate
 {
@@ -63,7 +59,7 @@ namespace Mitigate
             this.techniqueID = rootTechniqueID;
             this.color = this.PopulateColor(subTechniquesColors);
             if (this.color == ColorPalette.NoMitigationsAvailable)
-                this.enabled = Program.ShowUnmitigatableTechniques;
+                this.enabled = Program.Arguments.ShowUnmitigatableTechnique;
             else
                 this.enabled = true;
             this.metadata = new List<Metadata>();
@@ -74,7 +70,7 @@ namespace Mitigate
             this.techniqueID = techniqueID;
             this.color = this.PopulateColor(results);
             if (this.color == ColorPalette.NoMitigationsAvailable)
-                this.enabled = Program.ShowUnmitigatableTechniques;
+                this.enabled = Program.Arguments.ShowUnmitigatableTechnique;
             else
                 this.enabled = true;
             this.PopulateMetadata(results);
@@ -106,8 +102,8 @@ namespace Mitigate
 
             if (MitigationResults.Count() == 1 && MitigationResults[0] == Mitigation.TestNotImplemented)
                 return ColorPalette.White;
-            
-                    // Check if the technique cannot be mitigated
+
+            // Check if the technique cannot be mitigated
             if (MitigationResults.Count() == 1 && MitigationResults[0] == Mitigation.NoMitigationAvailable)
                 return ColorPalette.NoMitigationsAvailable;
 
@@ -207,7 +203,7 @@ namespace Mitigate
         }
         public void CreateLegend()
         {
-            var items = new Dictionary<string,string>
+            var items = new Dictionary<string, string>
             {
                 { "All mitigations were detected", ColorPalette.AllMItigationDetected },
                 { "Some mitigations were detected", ColorPalette.SomeMitigations },

@@ -1,12 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
-using System.Security.Policy;
-using System.Text;
 
 namespace Mitigate
 {
@@ -18,31 +14,35 @@ namespace Mitigate
 
         public AttackCTI(string Url)
         {
+            CTIRoot AllAttack;
             using (var w = new WebClient())
             {
-                CTIRoot AllAttack = null ;
                 try
                 {
                     // Need to find a way to switch to MITRE TAXII server instead of the json file
-                    Console.WriteLine("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
+                    PrintUtils.PrintWarning("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
                     string json = w.DownloadString(Url);
                     AllAttack = JsonConvert.DeserializeObject<CTIRoot>(json);
 
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    PrintUtils.ExceptionPrint(ex.Message);
+
+                    throw new Exception("Unable to obtain latest Mitre Att&CK information. Please ensure that the device is connected to the internet.");
                 }
-                Technique[] items = AllAttack.objects;
-                // Filtering all techniques
-                var AllTechniques = items.Where(o => o.type == "attack-pattern" && o.revoked == false);
-                // Getting all win techniques
-                WindowsTechniques = AllTechniques.Where(o => o.x_mitre_platforms.Contains("Windows"));
-                // Getting all windows mitigations
-                MitigationRelationships = items.Where(o => o.type == "relationship" && o.relationship_type == "mitigates");
-                Mitigations = items.Where(o => o.type == "course-of-action"); 
             }
+            Technique[] items = AllAttack.objects;
+            // Filtering all techniques
+            var AllTechniques = items.Where(o => o.type == "attack-pattern" && o.revoked == false);
+            // Getting all win techniques
+            WindowsTechniques = AllTechniques.Where(o => o.x_mitre_platforms.Contains("Windows"));
+            // Getting all windows mitigations
+            MitigationRelationships = items.Where(o => o.type == "relationship" && o.relationship_type == "mitigates");
+            Mitigations = items.Where(o => o.type == "course-of-action");
+            AllAttack = null;
+            items = null;
         }
+
         public IEnumerable<string> GetAllTechniqueIDs()
         {
             return WindowsTechniques.Select(o => o.external_references[0].external_id);

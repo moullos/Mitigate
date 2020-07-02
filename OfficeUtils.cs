@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
 
 namespace Mitigate
 {
@@ -12,7 +11,7 @@ namespace Mitigate
         private static string GetOfficeVersion()
         {
             //https://stackoverflow.com/questions/3266675/how-to-detect-installed-version-of-ms-office
-            string[] AllOfficeVersions = { "16.0", "15.0", "14.0", "12.0" }; // don't really care for version before Office 2003
+            string[] AllOfficeVersions = { "16.0", "15.0", "14.0", "12.0" }; // don't really care for versions before Office 2003
             string[] OfficeSubKeys = Utils.GetRegSubkeys("HKCU", @"Software\Microsoft\Office");
             foreach (string version in AllOfficeVersions)
             {
@@ -20,6 +19,21 @@ namespace Mitigate
                     return version;
             }
             throw new OfficeUtils.OfficeNotInstallException("Office is not installed");
+        }
+
+        public static bool CheckTestRegKey()
+        {
+            string version = GetOfficeVersion();
+            string RegPath = @"Create Software\Microsoft\Office test\Special\Perf key and harden its permissions";
+            if (!Utils.RegExists("HKCU", RegPath, "Default"))
+            {
+                return false;
+            }
+            else
+            {
+                var HavePermissionsToAlter = Utils.RegWritePermissions("HKCU", RegPath, Program.SIDsToCheck);
+                return HavePermissionsToAlter;
+            }
         }
         public static bool IsVBADisabled()
         {
@@ -72,13 +86,22 @@ namespace Mitigate
                 // Check if disabled
                 if (Utils.GetRegValue("HKCU", RegPath, "disablealladdins") == "1")
                 {
-                    results[application] = true;
-                    continue;
+                    results[application + ": Addins Disabled"] = true;
+                }
+                else
+                {
+                    results[application + ": Addins Disabled"] = false;
+
                 }
                 // Check if only signed
                 if (Utils.GetRegValue("HKCU", RegPath, "requireaddinsig") == "1")
                 {
-                    results[application] = true;
+                    results[application + ": Addins require signing"] = true;
+                }
+                else
+                {
+                    results[application + ": Addins require signing"] = false;
+
                 }
             }
             return results;
@@ -90,11 +113,11 @@ namespace Mitigate
             // Currently only works for office 365/2016
             // Get Office Version
             string version = GetOfficeVersion();
-            if (version != "16.0") 
-            { 
-                throw new OfficeNotInstallException();
+            if (version != "16.0")
+            {
+                throw new OfficeNotInstallException("Unsupported office version");
             }
-            
+
             // Pulling all the setting from the registry
             var pathWord = String.Format(@"Software\Microsoft\Office\{0}\{1}\Security\ProtectedView", version, "Word");
             var pathExcel = String.Format(@"Software\Microsoft\Office\{0}\{1}\Security\ProtectedView", version, "Excel");
@@ -102,49 +125,48 @@ namespace Mitigate
 
             //https://getadmx.com/?Category=Office2016&Policy=word16.Office.Microsoft.Policies.Windows::L_DoNotOpenFilesFromTheInternetZoneInProtectedView
             //Check for protected view on files downloaded from the internet
-            ProtectedViewInfo["InternetFiles:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableinternetfilesinpv") == "0");
-            ProtectedViewInfo["InternetFiles:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableinternetfilesinpv") == "0");
-            ProtectedViewInfo["InternetFiles:PPT"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableinternetfilesinpv") == "0");
+            ProtectedViewInfo["Word:  PV on Internet Files"] = (Utils.GetRegValue("HKLM", pathWord, "disableinternetfilesinpv") != "1");
+            ProtectedViewInfo["Excel: PV on Internet Files"] = (Utils.GetRegValue("HKLM", pathExcel, "disableinternetfilesinpv") != "1");
+            ProtectedViewInfo["PPT: PV on Internet Files"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableinternetfilesinpv") != "1");
 
             // Check for protected view on files opened from unsafe locations
-            ProtectedViewInfo["UnsafeLocations:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableunsafelocationsinpv") == "0");
-            ProtectedViewInfo["UnsafeLocations:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableunsafelocationsinpv") == "0");
-            ProtectedViewInfo["UnsafeLocations:PPT"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableunsafelocationsinpv") == "0");
+            ProtectedViewInfo["Word:  PV on Files in Unsafe Locations"] = (Utils.GetRegValue("HKLM", pathWord, "disableunsafelocationsinpv") != "1");
+            ProtectedViewInfo["Excel: PV on Files in Unsafe Locations"] = (Utils.GetRegValue("HKLM", pathExcel, "disableunsafelocationsinpv") != "1");
+            ProtectedViewInfo["PPT:   PV on Files in Unsafe Locations"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableunsafelocationsinpv") != "!");
 
             // Check for protected view on files opened from local intranet UNC shares
-            ProtectedViewInfo["Intranet:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableintranetcheck") == "0");
-            ProtectedViewInfo["Intranet:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableintranetcheck") == "0");
-            ProtectedViewInfo["Intranet:PPT"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableintranetcheck") == "0");
+            ProtectedViewInfo["Word:  PV on files from the intranet"] = (Utils.GetRegValue("HKLM", pathWord, "disableintranetcheck") == "0");
+            ProtectedViewInfo["Excel: PV on files from the intranet"] = (Utils.GetRegValue("HKLM", pathExcel, "disableintranetcheck") == "0");
+            ProtectedViewInfo["PPT:   PV on files from the intranet"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableintranetcheck") == "0");
 
             // Check for protected view on files opened from OutLook
-            ProtectedViewInfo["Outlook:Word"] = (Utils.GetRegValue("HKLM", pathWord, "disableattachmentsinpv") == "0");
-            ProtectedViewInfo["Outlook:Excel"] = (Utils.GetRegValue("HKLM", pathExcel, "disableattachmentsinpv") == "0");
-            ProtectedViewInfo["Outlook:PPT"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableattachmentsinpv") == "0");
+            ProtectedViewInfo["Word outlook attachments in PV"] = (Utils.GetRegValue("HKLM", pathWord, "disableattachmentsinpv") != "1");
+            ProtectedViewInfo["Excel outlook attachments in PV"] = (Utils.GetRegValue("HKLM", pathExcel, "disableattachmentsinpv") != "1");
+            ProtectedViewInfo["PPT outlook attachment in PV"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableattachmentsinpv") != "1");
             return ProtectedViewInfo;
         }
         public static Dictionary<string, bool> GetAutomaticDDEExecutionConf()
         {
             Dictionary<string, bool> AutomaticDDEExecutionConf = new Dictionary<string, bool>();
-            // Currently only works for office 365/2016
-            // Get Office Version
+
             string version = GetOfficeVersion();
-            if (version != "16.0")
+            if (version != "14.0" && version != "15.0" && version != "16.0")
             {
-                throw new OfficeNotInstallException();
+                throw new OfficeNotInstallException("Unsupported office version");
             }
-            
+
             //https://gist.github.com/wdormann/732bb88d9b5dd5a66c9f1e1498f31a1b
             var pathWord = String.Format(@"Software\Microsoft\Office\{0}\{1}\Options", version, "Word");
-            AutomaticDDEExecutionConf["Word:Dont update links"] = (Utils.GetRegValue("HKCU", pathWord, "DontUpdateLinks") == "1");
+            AutomaticDDEExecutionConf["Word: Don't update links automatically"] = (Utils.GetRegValue("HKCU", pathWord, "DontUpdateLinks") == "1");
             var pathWordMail = String.Format(@"Software\Microsoft\Office\{0}\{1}\Options\WordMail", version, "Word");
-            AutomaticDDEExecutionConf["WordMail:Dont update links"] = (Utils.GetRegValue("HKCU", pathWordMail, "DontUpdateLinks") == "1");
+            AutomaticDDEExecutionConf["WordMail: Don't update links automatically"] = (Utils.GetRegValue("HKCU", pathWordMail, "DontUpdateLinks") == "1");
             var pathExcel = String.Format(@"Software\Microsoft\Office\{0}\{1}\Options", version, "Excel");
-            AutomaticDDEExecutionConf["Excel:Dont update links"] = (Utils.GetRegValue("HKCU", pathExcel, "DontUpdateLinks") == "1");
-            AutomaticDDEExecutionConf["Excel:DDE Disabled"] = (Utils.GetRegValue("HKCU", pathExcel, "DDEAllowed") == "0");
-            AutomaticDDEExecutionConf["Excel:DDE Cleaned"] = (Utils.GetRegValue("HKCU", pathExcel, "DDECleaned") == "1");
+            AutomaticDDEExecutionConf["Excel: Don't update links automatically"] = (Utils.GetRegValue("HKCU", pathExcel, "DontUpdateLinks") == "1");
+            AutomaticDDEExecutionConf["Excel: DDE Disabled"] = (Utils.GetRegValue("HKCU", pathExcel, "DDEAllowed") == "0");
+            AutomaticDDEExecutionConf["Excel: DDE Cleaned"] = (Utils.GetRegValue("HKCU", pathExcel, "DDECleaned") == "1");
             // TODO - Check what this does for version 14.0 and 15.0
             //AutomaticDDEExecutionConf["Excel:Options"] = (Utils.GetRegValue("HKCU", pathExcel, "Options") == "117");
-            
+
             return AutomaticDDEExecutionConf;
         }
         public static Dictionary<string, bool> GetEmbeddedFilesOneNoteConf()
@@ -152,7 +174,7 @@ namespace Mitigate
             Dictionary<string, bool> EmbeddedFilesOneNoteConf = new Dictionary<string, bool>();
 
             string version = GetOfficeVersion();
-            if (version == "16.0" || version == "15.0")
+            if (version != "16.0" && version != "15.0")
             {
                 throw new OfficeNotInstallException();
             }
@@ -161,8 +183,6 @@ namespace Mitigate
             EmbeddedFilesOneNoteConf["Embedded Files Disabled"] = (Utils.GetRegValue("HKCU", path, "DisableEmbeddedFiles") == "1");
             return EmbeddedFilesOneNoteConf;
         }
-        // From WinPEAS: https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/blob/master/winPEAS/winPEASexe/winPEAS/SystemInfo.cs
-        // https://getadmx.com/?Category=LAPS&Policy=FullArmor.Policies.C9E1D975_EA58_48C3_958E_3BC214D89A2E::POL_AdmPwd
 
         [Serializable]
         internal class OfficeNotInstallException : Exception

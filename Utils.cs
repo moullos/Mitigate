@@ -1,16 +1,15 @@
-﻿using System;
-using System.Diagnostics;
+﻿using Microsoft.Win32;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
-using Microsoft.Win32;
+using System.Data;
+using System.Diagnostics;
+using System.DirectoryServices.AccountManagement;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.IO;
-using System.DirectoryServices.AccountManagement;
-using System.Data;
-using System.CodeDom.Compiler;
-using System.ServiceProcess;
 
 namespace Mitigate
 {
@@ -49,6 +48,28 @@ namespace Mitigate
                 return true;
             }
         }
+
+
+
+        public static bool CommandFileAccessible(string cmd)
+        {
+            string output;
+            string err;
+            int exitCode;
+            var result = RunCmd(cmd);
+            output = result.Item1;
+            err = result.Item2;
+            exitCode = result.Item3;
+            if (output.Contains("is not recognized as an internal or external command"))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         // All credit for the Registry Utils goes to winPeas
         ///////////////////////////////////////////
         /// Interf. for Keys and Values in Reg. ///
@@ -195,6 +216,26 @@ namespace Mitigate
                 return new string[0];
             }
         }
+        public static bool RegExists(string hive, string path)
+        {
+            Microsoft.Win32.RegistryKey myKey = null;
+            if (hive == "HKLM")
+            {
+                myKey = Registry.LocalMachine.OpenSubKey(path);
+            }
+            else if (hive == "HKU")
+            {
+                myKey = Registry.Users.OpenSubKey(path);
+            }
+            else
+            {
+                myKey = Registry.CurrentUser.OpenSubKey(path);
+            }
+            if (myKey is null)
+                return false;
+            return true;
+        }
+
         public static bool RegExists(string hive, string path, string value)
         {
             Microsoft.Win32.RegistryKey myKey = null;
@@ -217,139 +258,71 @@ namespace Mitigate
                 return false;
             return true;
         }
-        public static Dictionary<string, bool> GetRegPermissions(string hive, string path, List<string> SIDs)
+
+        /// <summary>
+        /// Checks whether any of the supplied SIDs has write access to the specified registry
+        /// </summary>
+        /// <param name="hive">Registry Hive</param>
+        /// <param name="path">Registry Path</param>
+        /// <param name="SIDs">List of SIDs to check</param>
+        /// <returns>Boolean</returns>
+        public static bool RegWritePermissions(string hive, string path, List<string> SIDs)
         {
-            //PrintUtils.PrintInfo(String.Format(@"Checking reg permissions for {0}\{1}", hive, path));
             Dictionary<string, bool> results = new Dictionary<string, bool>();
             Microsoft.Win32.RegistryKey myKey = null;
-            try
+            if (hive == "HKLM")
             {
-
-                if (hive == "HKLM")
-                {
-                    myKey = Registry.LocalMachine.OpenSubKey(path);
-                }
-                else if (hive == "HKU")
-                {
-                    myKey = Registry.Users.OpenSubKey(path);
-                }
-                else
-                {
-                    myKey = Registry.CurrentUser.OpenSubKey(path);
-                }
-                var security = myKey.GetAccessControl();
-                foreach (RegistryAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
-                {
-                    int current_perm = (int)rule.RegistryRights;
-                    string current_perm_str = PermInt2Str(current_perm, true);
-                    if (current_perm_str == "")
-                        continue;
-
-                    foreach (string SID in SIDs)
-                    {
-                        if (rule.IdentityReference.Value.Equals(SID))
-                        {
-                            results[SID] = true;
-                            continue;
-                        }
-                    /*
-                    SecurityIdentifier UserSID = new SecurityIdentifier(SID);
-                    SecurityIdentifier RuleSID = new SecurityIdentifier(rule.IdentityReference.Value);
-                    if (RuleSID.Value == UserSID.Value)
-                    {
-                            results[SID] = true;
-                            continue;
-                    }
-                    else
-                    {
-                        PrincipalContext ctx = new PrincipalContext(ContextType.Machine);
-                        GroupPrincipal group = GroupPrincipal.FindByIdentity(ctx, RuleSID.Value);
-                        if (group!= null)
-                         {
-                            foreach (Principal p in group.Members)
-                                if (p.Sid.Value == UserSID.Value)
-                                {
-                                    results[SID] = true;
-                                    continue;
-                                }
-                         }
-
-                    }
-                    */
-                    }
-                    
-                }
-                return results;
+                myKey = Registry.LocalMachine.OpenSubKey(path);
             }
-            catch
+            else if (hive == "HKU")
             {
-                PrintUtils.ExceptionPrint(String.Format(@"Couldn't get access control rules for {0}\{1}", hive, path));
-                return results;
+                myKey = Registry.Users.OpenSubKey(path);
             }
+            else
+            {
+                myKey = Registry.CurrentUser.OpenSubKey(path);
+            }
+            var security = myKey.GetAccessControl();
+            var SddlString = security.GetSecurityDescriptorSddlForm(AccessControlSections.All);
+            var DecodedSDDL = Utils.PermissionsDecoder.DecodeSddlString<RegistryRights>(SddlString);
+            return DecodedSDDL.RegistryWriteAccess(SIDs);
         }
-        public static Dictionary<string, bool> GetFileWritePermissions(string FilePath, List<string> SIDs)
+
+        /// <summary>
+        /// Checks is any of the supplied SIDs has write access to the specified file path
+        /// </summary>
+        /// <param name="FilePath">The relevant filepath</param>
+        /// <param name="SIDs">List of SIDs to check</param>
+        /// <returns>True if write files exist</returns>
+
+        public static bool FileWritePermissions(string FilePath, List<string> SIDs)
         {
-            Dictionary<string, bool> results = new Dictionary<string, bool>();
-            try
+            FileSystemSecurity security;
+            if (File.Exists(FilePath))
             {
-                FileSystemSecurity security;
-                if (File.Exists(FilePath))
-                {
-                    FileInfo fInfo = new FileInfo(FilePath);
-                    security = fInfo.GetAccessControl();
-                }
-                else
-                {
-                    return results;
-                }
-
-                foreach (FileSystemAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
-                {
-                    int current_perm = (int)rule.FileSystemRights;
-                    string current_perm_str = PermInt2Str(current_perm, true);
-                    if (current_perm_str == "")
-                        continue;
-                    foreach (string SID in SIDs)
-                    {
-                        if (rule.IdentityReference.Value.Equals(SID))
-                        {
-                            results[SID] = true;
-                            continue;
-                        }
-                        //Tried to get effective permissions but it's too slow
-                        /*
-                        SecurityIdentifier UserSID = new SecurityIdentifier(SID);
-                        SecurityIdentifier RuleSID = new SecurityIdentifier(rule.IdentityReference.Value);
-                        if (RuleSID.IsAccountSid())
-                        {
-                            if (RuleSID.Value == UserSID.Value)
-                            {
-                                results[SID] = true;
-                                continue;
-
-                            }
-                        }
-                        else
-                        {
-                            PrincipalContext ctx = new PrincipalContext(ContextType.Machine);
-                            GroupPrincipal group = GroupPrincipal.FindByIdentity(ctx, RuleSID.Value);
-                            foreach (Principal p in group.Members)
-                                if (p.Sid == UserSID)
-                                {
-                                    results[SID] = true;
-                                    continue;
-                                }
-                        }
-                        */
-                    }
-                }
-                return results;
+                FileInfo fInfo = new FileInfo(FilePath);
+                security = fInfo.GetAccessControl();
             }
-            catch
+            else
             {
-                PrintUtils.ExceptionPrint(String.Format(@"Could get access control rules for {0}", FilePath));
-                return null;
+                var DirectoryPath = Path.GetDirectoryName(FilePath);
+                return DirectoryRightPermissions(DirectoryPath, SIDs);
             }
+            var SDDLString = security.GetSecurityDescriptorSddlForm(AccessControlSections.All);
+            var DecodedSDDL = Utils.PermissionsDecoder.DecodeSddlString<FileSystemRights>(SDDLString);
+            return DecodedSDDL.FileWriteAccess(SIDs);
+
+        }
+
+        public static bool DirectoryRightPermissions(string DirectoryPath, List<string> SIDs)
+        {
+            DirectorySecurity security;
+            //If the file does not exist check the directory rights
+            DirectoryInfo dinfo = new DirectoryInfo(DirectoryPath);
+            security = dinfo.GetAccessControl();
+            var SDDLString = security.GetSecurityDescriptorSddlForm(AccessControlSections.All);
+            var DecodedSDDL = Utils.PermissionsDecoder.DecodeSddlString<FileSystemRights>(SDDLString);
+            return DecodedSDDL.DirectoryWriteAccess(SIDs);
 
         }
         /// From winpeas
@@ -442,12 +415,10 @@ namespace Mitigate
         public static Dictionary<string, string> GetServiceConfig(string ServiceName)
         {
             Dictionary<string, string> results = new Dictionary<string, string>();
-
-
-            // Unfortunately the ServiceController class does not provide the startUpType.
+            // Unfortunately the ServiceController class does not provide the startUpType on this version of .NET
             // So we pull it directly from the register
 
-            var RegPath = @"\SYSTEM\CurrentControlSet\Services\WinRM";
+            var RegPath = @"SYSTEM\CurrentControlSet\Services\WinRM";
             var RegName = @"Start";
 
             string StartUpTypeValue = Utils.GetRegValue("HKLM", RegPath, RegName);
@@ -491,7 +462,264 @@ namespace Mitigate
             }
             return startupType;
         }
+        /// <summary>
+        /// UTILS TO HANDLE PERMISSIONS
+        /// </summary>
+        [Flags]
+        public enum WMIPermissionsMask : uint
+        {
+            WMI_ENABLE_ACCOUNT = 0x00000001,
+            WMI_EXECUTE_METHODS = 0x00000002,
+            WMI_FULL_WRITE = 0x00000004,
+            WMI_PARTIAL_WRITE = 0x00000008,
+            WMI_PROVIDER_WRITE = 0x00000010,
+            WMI_REMOTE_ENABLE = 0x00000020,
+            FILE_DELETE_CHILD = 0x00000040,
+            FILE_READ_ATTRIBUTES = 0x00000080,
+            FILE_WRITE_ATTRIBUTES = 0x00000100,
+            DELETE = 0x00010000,
+            READ_CONTROL = 0x00020000,
+            WRITE_DAC = 0x00040000,
+            WRITE_OWNER = 0x00080000,
+            SYNCHRONIZE = 0x00100000,
+            ACCESS_SYSTEM_SECURITY = 0x01000000,
+            MAXIMUM_ALLOWED = 0x02000000,
+            GENERIC_ALL = 0x10000000,
+            GENERIC_EXECUTE = 0x20000000,
+            GENERIC_WRITE = 0x40000000,
+            GENERIC_READ = 0x80000000
+        }
+        [Flags]
+        public enum ServicePermissionsMask : uint
+        {
+            QueryConfig = 1,
+            ChangeConfig = 2,
+            QueryStatus = 4,
+            EnumerateDependents = 8,
+            Start = 16,
+            Stop = 32,
+            PauseContinue = 64,
+            Interrogate = 128,
+            UserDefinedControl = 256,
+            Delete = 65536,
+            ReadControl = 131072,
+            WriteDac = 262144,
+            WriteOwner = 524288,
+            Synchronize = 1048576,
+            AccessSystemSecurity = 16777216,
+            GenericAll = 268435456,
+            GenericExecute = 536870912,
+            GenericWrite = 1073741824,
+            GenericRead = 2147483648
+        }
+        [Flags]
+        public enum COMPermissionsMask : uint
+        {
+            COM_RIGHTS_EXECUTE = 1,
+            COM_RIGHTS_EXECUTE_LOCAL = 2,
+            COM_RIGHTS_EXECUTE_REMOTE = 4,
+            COM_RIGHTS_ACTIVATE_LOCAL = 8,
+            COM_RIGHTS_ACTIVATE_REMOTE = 16,
+        }
+        public class SDDL
+        {
+            public SDDL()
+            {
+                SACL = new List<ACE>();
+                DACL = new List<ACE>();
+            }
+            public string Owner { get; set; }
+            public string Group { get; set; }
+            public List<ACE> SACL { get; set; }
+            public List<ACE> DACL { get; set; }
+
+            public bool RegistryWriteAccess(List<string> SIDs)
+            {
+                var SIDPermissions = DACL.Where(o => SIDs.Contains(o.Trustee) && o.AccessType == "AccessAllowed")
+                                      .Select(o => o.Permissions);
+                return SIDPermissions.Any(o => o.Contains("FullControl") ||
+                                               o.Contains("SetValue") ||
+                                                o.Contains("WriteKey")
+                                          );
+            }
+            public bool FileWriteAccess(List<string> SIDs)
+            {
+                var SIDPermissions = DACL.Where(o => SIDs.Contains(o.Trustee) && o.AccessType == "AccessAllowed")
+                      .Select(o => o.Permissions);
+                return SIDPermissions.Any(
+                                o =>
+                                o.Contains("AllAccess") ||
+                                o.Contains("GenericAll") ||
+                                o.Contains("TakeOwnership") ||
+                                o.Contains("GenericWrite") ||
+                                o.Contains("WriteData") ||
+                                o.Contains("Modify") ||
+                                o.Contains("Write") ||
+                                o.Contains("ChangePermissions") ||
+                                o.Contains("FullControl")
+                                );
+            }
+            public bool DirectoryWriteAccess(List<string> SIDs)
+            {
+                var SIDPermissions = DACL.Where(o => SIDs.Contains(o.Trustee) && o.AccessType == "AccessAllowed")
+                      .Select(o => o.Permissions);
+                return SIDPermissions.Any(
+                o =>
+                o.Contains("AllAccess") ||
+                o.Contains("GenericAll") ||
+                o.Contains("TakeOwnership") ||
+                o.Contains("GenericWrite") ||
+                o.Contains("WriteData") ||
+                o.Contains("Modify") ||
+                o.Contains("Write") ||
+                o.Contains("ChangePermissions") ||
+                o.Contains("FullControl")
+                );
+            }
+            public bool COMFullAccess(List<string> SIDs)
+            {
+                var SIDPermissions = DACL.Where(o => SIDs.Contains(o.Trustee) && o.AccessType == "AccessAllowed")
+                      .Select(o => o.Permissions);
+                return SIDPermissions.Any(
+                o =>
+                o.Contains("AllAccess") ||
+                o.Contains("GenericAll") ||
+                o.Contains("TakeOwnership") ||
+                o.Contains("GenericWrite") ||
+                o.Contains("WriteData") ||
+                o.Contains("Modify") ||
+                o.Contains("Write") ||
+                o.Contains("ChangePermissions") ||
+                o.Contains("FullControl")
+                );
+            }
+        }
+        public class ACE
+        {
+            public ACE()
+            {
+                Permissions = new List<string>();
+            }
+
+            public string Trustee { get; set; }
+            public string AuditRights { get; set; }
+            public string AccessType { get; set; }
+            public List<string> Permissions { get; set; }
+        }
+
+        // Aspiration from https://stackoverflow.com/questions/7724110/convert-sddl-to-readable-text-in-net
+        public static class PermissionsDecoder
+        {
+            private static readonly ConcurrentDictionary<Type, Dictionary<uint, string>> _rights
+                = new ConcurrentDictionary<Type, Dictionary<uint, string>>();
+
+            public static SDDL DecodeSddlString<TRightsEnum>(string sddl) where TRightsEnum : struct
+            {
+                var rightsEnumType = typeof(TRightsEnum);
+                if (!rightsEnumType.IsEnum ||
+                    Marshal.SizeOf(Enum.GetUnderlyingType(rightsEnumType)) != 4 ||
+                    !rightsEnumType.GetCustomAttributes(typeof(FlagsAttribute), true).Any())
+                {
+                    throw new ArgumentException("TRightsEnum must be a 32-bit integer System.Enum with Flags attribute", "TRightsEnum");
+                }
+                else if (string.IsNullOrWhiteSpace(sddl))
+                    throw new ArgumentNullException("sddl");
+
+                var descriptor = new RawSecurityDescriptor(sddl);
+
+                var rights = _rights.GetOrAdd(rightsEnumType,
+                                              t => Enum.GetValues(rightsEnumType)
+                                                       .Cast<uint>()
+                                                       .Where(n => n != 0 && (n & (n - 1)) == 0)
+                                                       .Distinct()
+                                                       .OrderBy(n => n)
+                                                       .Select(v => new { v, n = Enum.GetName(rightsEnumType, v) })
+                                                       .ToDictionary(x => x.v, x => x.n));
+
+                var DecodedSDDL = new SDDL();
+
+                DecodedSDDL.Owner = descriptor.Owner.Value;
+                DecodedSDDL.Group = descriptor.Group.Value;
+
+                if (descriptor.SystemAcl != null)
+                {
+                    DecodeAclEntries(DecodedSDDL.SACL, descriptor.SystemAcl, rights);
+                }
+
+                if (descriptor.DiscretionaryAcl != null)
+                {
+                    DecodeAclEntries(DecodedSDDL.DACL, descriptor.DiscretionaryAcl, rights);
+                }
+
+                return DecodedSDDL;
+            }
+
+            private static string SidToAccountName(SecurityIdentifier sid)
+            {
+                return (sid.IsValidTargetType(typeof(NTAccount)))
+                     ? ((NTAccount)sid.Translate(typeof(NTAccount))).Value
+                     : sid.Value;
+            }
+
+            private static void DecodeAclEntries(List<ACE> DecodedACL, RawAcl acl, Dictionary<uint, string> rights)
+            {
+                foreach (var ace in acl)
+                {
+                    var DecodedACE = new ACE();
+                    var knownAce = ace as KnownAce;
+                    if (knownAce != null)
+                    {
+                        DecodedACE.Trustee = knownAce.SecurityIdentifier.Value;
+                        DecodedACE.AccessType = knownAce.AceType > AceType.MaxDefinedAceType
+                                                 ? "Custom Access"
+                                                 : knownAce.AceType.ToString();
+
+                        if (knownAce.AceFlags != AceFlags.None)
+                        {
+                            DecodedACE.AuditRights = knownAce.AceFlags.ToString();
+                        }
 
 
+                        var mask = unchecked((uint)knownAce.AccessMask);
+
+                        foreach (var r in rights.Keys)
+                        {
+                            if ((mask & r) == r)
+                            {
+                                DecodedACE.Permissions.Add(rights[r]);
+                            }
+                        }
+                    }
+                    else throw new Exception("Unknown ACE Structure");
+                    DecodedACL.Add(DecodedACE);
+                }
+            }
+            public static List<ACE> DecodeRawACE<TRightsEnum>(byte[] ACL) where TRightsEnum : struct
+            {
+                var rightsEnumType = typeof(TRightsEnum);
+                if (!rightsEnumType.IsEnum ||
+                    Marshal.SizeOf(Enum.GetUnderlyingType(rightsEnumType)) != 4 ||
+                    !rightsEnumType.GetCustomAttributes(typeof(FlagsAttribute), true).Any())
+                {
+                    throw new ArgumentException("TRightsEnum must be a 32-bit integer System.Enum with Flags attribute", "TRightsEnum");
+                }
+                else if (ACL.Count() == 0)
+                    throw new ArgumentNullException("acl");
+
+                RawAcl rawAcl = new RawAcl(ACL, 20); //20 here was trial and error!
+
+                var rights = _rights.GetOrAdd(rightsEnumType,
+                                              t => Enum.GetValues(rightsEnumType)
+                                                       .Cast<uint>()
+                                                       .Where(n => n != 0 && (n & (n - 1)) == 0)
+                                                       .Distinct()
+                                                       .OrderBy(n => n)
+                                                       .Select(v => new { v, n = Enum.GetName(rightsEnumType, v) })
+                                                       .ToDictionary(x => x.v, x => x.n));
+                var result = new List<ACE>();
+                DecodeAclEntries(result, rawAcl, rights);
+                return result;
+            }
+        }
     }
 }

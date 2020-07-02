@@ -1,19 +1,9 @@
 ﻿using NetFwTypeLib;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Dynamic;
-using System.IO;
 using System.Linq;
-using System.Management;
-using System.Net;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.AccessControl;
-using System.Security.Permissions;
-using System.Security.Principal;
-using System.Text;
 
 namespace Mitigate
 {
@@ -25,7 +15,7 @@ namespace Mitigate
         False = 0,                  // Mitigation is not applied
         True = 2,                   // Mitigation is applied
         Partial = 1,                // Mitigation is partially applied
-        Failed = 3,                 // Mitigation enumeration failed
+        TestFailed = 3,             // Mitigation enumeration failed
         CannotBeMeasured = 4,       // Mitigation is not quantifiable using machine interrogation e.g. User Training, Network Segmentation etc
         NoMitigationAvailable = 5   // Technique cannot be mitigated
     }
@@ -34,8 +24,7 @@ namespace Mitigate
         //////////////////////
         // Helper functions //
         //////////////////////
-      
-       
+
         /// <summary>
         /// Executes tests for a technique that has subtechniques
         /// </summary>
@@ -79,7 +68,7 @@ namespace Mitigate
                 }
             }
             // Only add the root technique if at least one test for a sub technique is defined
-            if (TechniquTestDetected || SubTechniqueWithNoMitigation) 
+            if (TechniquTestDetected || SubTechniqueWithNoMitigation)
                 navigator.AddMitigationInfo(technique, SubTechniqueIDs, SubTechniquesMitigationInfo);
         }
         /// <summary>
@@ -135,20 +124,36 @@ namespace Mitigate
         {
             return result ? Mitigation.True : Mitigation.False;
         }
-        private static void AddMitigationResult(Dictionary<String, Mitigation> results, string test, bool result)
+        private static void AddMitigationResult(Dictionary<String, Mitigation> results, string Description, bool result)
         {
-            results[test] = Bool2TestResult(result);
-            PrintUtils.PrintResult(results[test]);
+            results[Description] = Bool2TestResult(result);
+            PrintUtils.PrintMitigationInfo(Description);
+            PrintUtils.PrintMitigationResult(results[Description]);
         }
-        private static void AddMitigationResult(Dictionary<String, Mitigation> results, string test, Mitigation result)
+
+        private static void AddMitigationResult(Dictionary<String, Mitigation> results, string Description, Mitigation result)
         {
-            results[test] = result;
-            PrintUtils.PrintResult(results[test]);
+            results[Description] = result;
+            PrintUtils.PrintMitigationInfo(Description);
+            PrintUtils.PrintMitigationResult(results[Description]);
         }
-        private static void AddMitigationResult(Dictionary<string, Mitigation> results, string test, Dictionary<string, bool> info)
+        private static void AddMitigationResult(Dictionary<string, Mitigation> results, string Description, Dictionary<string, bool> info, bool Verbose = true)
         {
-            results[test] = CollateResults(info);
-            PrintUtils.PrintResult(results[test]);
+            results[Description] = CollateResults(info);
+            PrintUtils.PrintMitigationInfo(Description);
+            PrintUtils.PrintMitigationResult(results[Description]);
+            if (Verbose)
+            {
+                foreach (var SubResult in info)
+                {
+                    var InfoTopic = SubResult.Key;
+                    var InfoResult = SubResult.Value;
+                    PrintUtils.PrintSubInfo(InfoTopic);
+                    PrintUtils.PrintMitigationResult(Bool2TestResult(InfoResult));
+                }
+            }
+            else PrintUtils.PrintMitigationMessage("Detailed results were omitted. Execute with -Verbose for full results");
+
         }
         private static Mitigation CollateResults(Dictionary<string, bool> info)
         {
@@ -164,9 +169,58 @@ namespace Mitigate
             }
             return Mitigation.Partial;
         }
-        ////////////////////////
-        /// Tests begin here ///
-        ////////////////////////
+
+        /////////////////////////////////
+        // Enumeration Method Template //
+        /////////////////////////////////
+
+        /// <summary>
+        /// This a template method for anyone looking to contribute.
+        /// All enumeration methods must return a Dictionary with the results of the enumeration.
+        /// Result dictionaries are initiated with the InitiateMitigation Method
+        /// Results are added to the dictionary with the AddMitigationResult Method
+        /// Mitig&te dynamically locates enumeration methods based on the method name which needs to follow a specific naming  
+        /// ID of the technique being simulated
+        /// XXXX: TechniqueID
+        /// _YYY: Optional, In case of subtechnique, YYY is the subtechnique ID
+        /// </summary>
+        /// <returns>Dictionary with the enumeration findings</returns>
+        public static Dictionary<string, Mitigation> TXXXX_YYY()
+        {
+
+            // Step 1 is always to initiate the dictionary carrying the results
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Description of 1st applicable control/configuration",
+                "Description of 2nd applicable control/configuration",
+                "Description of 3rd applicable control/configuration",
+                "..."
+                );
+
+            // Check 1: Checking for 1st control
+
+            // Enumeration of 1st application control goes here
+            var EnumerationResult1 = false;
+
+            // Use the AddMitigationResultMethod the add the results of the enumeration to the Dictionary as follows
+            // EnumerationResult can either be a boolean, a Mitigation enum value or a Dictionary<string,bool> for more complex cases
+            AddMitigationResult(results, "Description of 2nd applicable control/configuration", EnumerationResult1);
+
+
+
+            // Enumeration of 2nd application control goes here
+            var EnumerationResult2 = Mitigation.NA;
+
+
+            AddMitigationResult(results, "Description of 2nd applicable control/configuration", EnumerationResult2);
+
+            // ... //
+
+            return results;
+        }
+
+        /*--------------------------------*/
+        /* Enumeration methods begin here */
+        /*--------------------------------*/
 
         ////////////////////////////////////////
         // Spearphishing Attachment:T1566.001 //
@@ -181,7 +235,6 @@ namespace Mitigate
                 );
 
             // Check 1: Does it have AV? //
-            PrintUtils.PrintInfo("AV detected?");
             AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
 
             // Cannot automatically measure User Training 
@@ -190,6 +243,7 @@ namespace Mitigate
             // Rest of the checks not implemented yet
             return results;
         }
+
         /////////////////////////////////////////
         // Spearphishing via Service:T1566.003 //
         /////////////////////////////////////////
@@ -202,7 +256,6 @@ namespace Mitigate
                 );
 
             // Check 1: Does it have AV? //
-            PrintUtils.PrintInfo("AV detected?");
             AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
 
             // Cannot automatically measure User Training 
@@ -210,40 +263,68 @@ namespace Mitigate
             return results;
 
         }
+
         ///////////////////////////////////////
         // Component Object Model: T1559.001 //
         ///////////////////////////////////////
         public static Dictionary<string, Mitigation> T1559_001()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                "Protected View Enabled",
-                "Hardened system-wide COM permissions"
+                "Protected View",
+                "Default system-wide COM permissions hardened",
+                "COM Class IDs with none default permissions"
                 );
 
             // Check 1: Is protected view enabled? //
-            PrintUtils.PrintInfo("Is protected view enabled?");
             try
             {
                 var ProtectedViewInfo = OfficeUtils.GetProtectedViewInfo();
-                AddMitigationResult(results, "Protected View Enabled", ProtectedViewInfo);
+                AddMitigationResult(results, "Protected View", ProtectedViewInfo);
             }
             catch (OfficeUtils.OfficeNotInstallException ex)
             {
-                AddMitigationResult(results, "Protected View Enabled", Mitigation.NA);
+                AddMitigationResult(results, "Protected View", Mitigation.NA);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Protected View Enabled", Mitigation.Failed);
+                AddMitigationResult(results, "Protected View", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
-            // Check 2: Hardened system-wide permissions // 
-            PrintUtils.PrintInfo("Are Default Com Permissions hardened?");
-            AddMitigationResult(results, "Hardened system-wide COM permissions", SystemUtils.GetDefaultComPermissions());
+            // Check 2: Hardened system-wide permissions //
+            try
+            {
+                AddMitigationResult(results, "Default system-wide COM permissions hardened", SystemUtils.GetDefaultComPermissions());
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Default system-wide COM permissions hardened", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
 
+            // Check 3: Checking individual com app permissions
+            try
+            {
+                AddMitigationResult(
+                    results,
+                    "COM Class IDs with none default permissions",
+                    SystemUtils.CheckAllComAccessPermissions(),
+                    Program.Arguments.Verbose
+                    );
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(
+                    results,
+                    "COM Class IDs with none default permissions",
+                    Mitigation.TestFailed
+                    );
+                PrintUtils.ErrorPrint(ex.Message);
+            }
             return results;
         }
+
         ///////////////////////////////////////
         // Dynamic Data Exchange: T1559.002 //
         //////////////////////////////////////
@@ -252,11 +333,10 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation(
                 "Protected View Enabled",
                 "Attack Surface Reduction Rules",
-                "Disable automatic DDE/OLE execution",
-                "Disable embedded files in OneNote"
+                "Disabled automatic DDE/OLE execution",
+                "Disabled embedded files in OneNote"
                 );
             // Check 1: Is protected view enabled? //
-            PrintUtils.PrintInfo("Is protected view enabled");
             try
             {
                 var ProtectedViewInfo = OfficeUtils.GetProtectedViewInfo();
@@ -269,16 +349,16 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Protected View Enabled", Mitigation.Failed);
+                AddMitigationResult(results, "Protected View Enabled", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
             // Check 2: Check for Attack Surface Reduction Rules //
+            //TODO ASR
             results["Attack Surface Reduction Rules"] = Mitigation.TestNotImplemented;
 
             // Check 3: Disabled automatic DDE/OLE execution //
             //https://gist.github.com/wdormann/732bb88d9b5dd5a66c9f1e1498f31a1b
-            PrintUtils.PrintInfo("Is DDE Automatic execution disabled?");
             try
             {
                 Dictionary<string, bool> AutomaticDDEExecutionConf = OfficeUtils.GetAutomaticDDEExecutionConf();
@@ -292,11 +372,10 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Disabled automatic DDE/OLE execution", Mitigation.Failed);
+                AddMitigationResult(results, "Disabled automatic DDE/OLE execution", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             // Check 4: Disable embedded files in OneNote //
-            PrintUtils.PrintInfo("Are embedded files in OneNote disabled");
             try
             {
                 Dictionary<string, bool> OneNoteExecutionConf = OfficeUtils.GetEmbeddedFilesOneNoteConf();
@@ -309,22 +388,12 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Disabled embedded files in OneNote", Mitigation.Failed);
+                AddMitigationResult(results, "Disabled embedded files in OneNote", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
-            // Checks done
             return results;
         }
-        ////////////////////////////////
-        // Default Accounts:T1078.001 //
-        ////////////////////////////////
-        public static Dictionary<string, Mitigation> T1078_001()
 
-        {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Check for default credentials");
-            return results;
-
-        }
         ///////////////////////////////
         // Domain Accounts:T1078.002 //
         ///////////////////////////////
@@ -332,7 +401,6 @@ namespace Mitigate
         {
             Dictionary<string, Mitigation> results = InitiateMitigation("MFA", "No domain accounts in local admin group");
             // Check 1: Are any domain users part of the local admin group?
-            PrintUtils.PrintInfo("Are domain accounts excluded from local administrators?");
             AddMitigationResult(results, "No domain accounts in local admin group", !UserUtils.IsADomainUserMemberofLocalAdmins());
             return results;
         }
@@ -345,10 +413,10 @@ namespace Mitigate
 
 
             // Check 1: Is LAPS enabled?
-            PrintUtils.PrintInfo("LAPS enabled?");
-            AddMitigationResult(results, "LAPS enabled?", SystemUtils.IsLapsEnabled());
+            AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
             return results;
         }
+
         ///////////////////////////
         // PowerShell: T1059.001 //
         ///////////////////////////
@@ -360,17 +428,16 @@ namespace Mitigate
                 "Restrict Execution policy to administrators"
                 );
             // Check 1: Executed only signed scripts
-            PrintUtils.PrintInfo("Checking if only signed scripts are executed by PS");
             string[] SatisfyingPolicies = { "AllSigned", "RemoteSigned", "Restricted" };
             string ExecutionPolicy = SystemUtils.GetPowershellExecutionPolicy();
             AddMitigationResult(results, "Execute only signed scripts", SatisfyingPolicies.Contains(ExecutionPolicy));
 
             // Check 2: Check if PS is accessble
-            PrintUtils.PrintInfo("Checking whether powershell is accessible from this user account");
             AddMitigationResult(results, "Disable or remove from systems that don't need it", !Utils.CommandFileExists("powershell.exe"));
 
             return results;
         }
+
         //////////////////////////////////////
         // Windows Command Shell: T1059.003 //
         //////////////////////////////////////
@@ -379,15 +446,14 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("AppLocker Enabled", "WDAC Enabled");
 
             //Check 1: Applocker
-            PrintUtils.PrintInfo("Is AppLocker Enabled?");
-            AddMitigationResult(results, "App Locker Enabled", SystemUtils.IsAppLockerEnabled());
+            AddMitigationResult(results, "AppLocker Enabled", SystemUtils.IsAppLockerEnabled());
 
             //Check 2: Windows Defender Application Control
-            PrintUtils.PrintInfo("Is WD Application Control on?");
             AddMitigationResult(results, "WDAC Enabled", SystemUtils.IsWDACEnabled());
 
             return results;
         }
+
         /////////////////////////
         // VBScript: T1059.005 //
         /////////////////////////
@@ -396,19 +462,17 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("AppLocker Enabled", "WDAC Enabled", "Restrict Access");
 
             //Check 1: Applocker
-            PrintUtils.PrintInfo("Is AppLocker Enabled?");
             AddMitigationResult(results, "AppLocker Enabled", SystemUtils.IsAppLockerEnabled());
 
             //Check 2: Windows Defender Application Control
-            PrintUtils.PrintInfo("Is WD Application Control on?");
             AddMitigationResult(results, "WDAC Enabled", SystemUtils.IsWDACEnabled());
 
             //Check 3: Are the scripts accessibled?
-            PrintUtils.PrintInfo("Are VBScript utils accessible?");
-            AddMitigationResult(results, "Restrict Access", Utils.CommandFileExists("Cscript.exe") || Utils.CommandFileExists("Wscript.exe"));
+            AddMitigationResult(results, "Restrict Access to VBScripts", !(Utils.CommandFileExists("Cscript.exe") || Utils.CommandFileExists("Wscript.exe")));
 
             return results;
         }
+
         ///////////////////////
         // Python: T1059.006 //
         ///////////////////////
@@ -417,6 +481,7 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("System Inventory Audit", "Blacklist", "Prevent users from installing");
             return results;
         }
+
         //////////////////////////////////////////////
         // Exploitation for Client Execution: T1203 //
         //////////////////////////////////////////////
@@ -427,16 +492,15 @@ namespace Mitigate
                 "WDEG Enabled"
                 );
             //Check 1: Checking for application guard
-            PrintUtils.PrintInfo("Checking for Windows Defender Application Guard");
             var WDAGStatus = SystemUtils.IsWDApplicationGuardEnabled();
             AddMitigationResult(results, "WDAG Enabled", WDAGStatus);
 
             //Check 2: Checking for exploit guard
-            PrintUtils.PrintInfo("Checking for Windows Defender Exploit Guard");
             AddMitigationResult(results, "WDEG Enabled", SystemUtils.IsWDExploitGuardEnabled());
 
             return results;
         }
+
         ///////////////////////
         // Native API: T1106 //
         ///////////////////////
@@ -445,16 +509,15 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("WDAG Enabled", "AppLocker Enabled", "Software Restriction Policies");
 
             //Check 1: Checking for application guard
-            PrintUtils.PrintInfo("Checking for Windows Defender Application Guard");
             var WDAGStatus = SystemUtils.IsWDApplicationGuardEnabled();
             AddMitigationResult(results, "WDAG Enabled", WDAGStatus);
 
             //Check 2: Applocker
-            PrintUtils.PrintInfo("Is AppLocker Enabled?");
             AddMitigationResult(results, "AppLocker Enabled", SystemUtils.IsAppLockerEnabled());
 
             return results;
         }
+
         /////////////////////////////
         // At (Windows): T1053.002 //
         /////////////////////////////
@@ -467,15 +530,14 @@ namespace Mitigate
                 "at deprecated");
 
             // Check 1: at runs in user context?
-            PrintUtils.PrintInfo("Run at.exe in user context");
             AddMitigationResult(results, "Do not run as SYSTEM", SystemUtils.RunAtInUserContext());
 
             // Check 2: at deprecated
-            PrintUtils.PrintInfo("Checking whether at is deprecated");
             AddMitigationResult(results, "at deprecated", !Utils.CommandFileExists("at.exe"));
 
             return results;
         }
+
         ///////////////////////////////
         // Scheduled Task: T1053.005 //
         ///////////////////////////////
@@ -489,71 +551,97 @@ namespace Mitigate
             results["Audit for weak permissions"] = Mitigation.NA;
 
             // Check 1: at runs in user context?
-            PrintUtils.PrintInfo("Run at.exe in user context");
             AddMitigationResult(results, "Do not run as SYSTEM", SystemUtils.RunAtInUserContext());
 
             return results;
         }
+
         //////////////////////
         // BITS Jobs: T1197 //
         //////////////////////
         public static Dictionary<string, Mitigation> T1197()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                "Host firewall rules",
+                "BITS Host firewall rules",
                 "Reduce BITS job lifetime",
                 "Limit User Access");
 
-            PrintUtils.PrintInfo("Reduced BITS job lifetime?");
-            AddMitigationResult(results, "Reduce BITS job lifetime", SystemUtils.GetBITSJobInfo());
+            AddMitigationResult(results, "Reduce BITS job lifetime", SystemUtils.GetBITSConfigInfo());
 
             // Check 2: Firewall rules
-            PrintUtils.PrintInfo("BITS host firewall rules?");
             var MitigationResult = Mitigation.TestNotImplemented;
             try
             {
-                List<INetFwRule> FirewallRules = SystemUtils.GetEnabledFirewallRules();
+                var FirewallRules = FirewallUtils.GetEnabledInboundRules();
                 var BITsRules = FirewallRules.Where(o => o.serviceName.ToString() == "BITS");
-                MitigationResult = BITsRules.Count() > 0 ? Mitigation.True : Mitigation.False;
-                AddMitigationResult(results, "BITS host firewall rules?", MitigationResult);
+                MitigationResult = BITsRules != null ? Mitigation.True : Mitigation.False;
+                AddMitigationResult(results, "BITS host firewall rules", MitigationResult);
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "BITS host firewall rules", Mitigation.Failed);
+                AddMitigationResult(results, "BITS host firewall rules", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             return results;
         }
+
         ///////////////////////////////////////////////
         // Windows Management Instrumentation: T1047 //
         ///////////////////////////////////////////////
         public static Dictionary<string, Mitigation> T1047()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("LAPS Enabled", "WMI Access Limited to Administrators");
+            Dictionary<string, Mitigation> results = InitiateMitigation("" +
+                "LAPS Enabled",
+                $"No remote WMI access to {Program.UserToCheck.SamAccountName}");
 
             // Check 1: Is LAPS enabled?
-            PrintUtils.PrintInfo("Is LAPS enabled?");
             AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            // Check 2: WMI Permissions
+            try
+            {
+                var wmiRemoteDeny = new Dictionary<string, bool>();
+                ViewNameSpaceSecurity viewns = new ViewNameSpaceSecurity(@"root\cimv2", false);
+                foreach (var item in viewns.GetNameSpaceSDDL(Environment.MachineName))
+                {
+                    var NameSpace = item.Key;
+                    var SDDLString = item.Value;
+                    var DecodedSDDL = Utils.PermissionsDecoder.DecodeSddlString<Utils.WMIPermissionsMask>(SDDLString);
+                    var SIDsToCheckPermissions = DecodedSDDL.DACL.Where(o => Program.SIDsToCheck.Contains(o.Trustee) && o.AccessType == "AccessAllowed")
+                                                                    .Select(o => o.Permissions);
+
+                    wmiRemoteDeny[NameSpace] = true;
+                    foreach (var permission in SIDsToCheckPermissions)
+                    {
+                        if (permission.Contains("WMI_REMOTE_ENABLE") && permission.Contains("WMI_ENABLE_ACCOUNT"))
+                        {
+                            wmiRemoteDeny[NameSpace] = false;
+                            break;
+                        }
+                    }
+                }
+                AddMitigationResult(results, $"No remote WMI access to {Program.UserToCheck.SamAccountName}", wmiRemoteDeny);
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, $"No remote WMI access to {Program.UserToCheck.SamAccountName}", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+
+            }
 
             return results;
         }
-        ///////////////////////////////////////////////////
-        // Registry Run Keys / Startup Folder: T1547.001 //
-        ///////////////////////////////////////////////////
-        public static Dictionary<string, Mitigation> T1547_001()
-        {
-            return NoMitigationAvailable();
-        }
+
         ///////////////////////////////////////
         // Authentication Package: T1547.002 //
         ///////////////////////////////////////
         public static Dictionary<string, Mitigation> T1547_002()
         {
-            PrintUtils.PrintInfo("Checking if LSA is run as a PPL");
             Dictionary<string, Mitigation> results = InitiateMitigation("Make LSA run as Protected Process Light");
             AddMitigationResult(results, "Make LSA run as Protected Process Light", SystemUtils.IsLsaRunAsPPL());
             return results;
         }
+
         ///////////////////////////////
         // Time Providers: T1547.003 //
         ///////////////////////////////
@@ -563,44 +651,31 @@ namespace Mitigate
                 "Block additions/modification to W32Time DLLs",
                 "Block modification to W32Time parameters in registry"
                 );
+
             // Check 1: W32Time dll permissions
-            string W32TimeDLLPath = @"%windir%\System32\W32Time.dll";
-            //string W32TimeDLLPath = @"C:\ExploitConfigfile.xml"; // for testing
-            PrintUtils.PrintInfo("W32Time DLL permissions hardened?");
-            var permissions = Utils.GetFileWritePermissions(W32TimeDLLPath, Program.InterestingSIDs);
-            if (!File.Exists(W32TimeDLLPath))
-            {
-                AddMitigationResult(results, "Block additions/modification to W32Time DLLs", Mitigation.NA);
-            }
-            else if (permissions != null)
-            {
-                AddMitigationResult(results, "Block additions/modification to W32Time DLLs", false);
-            }
-            else
-            {
-                AddMitigationResult(results, "Block additions/modification to W32Time DLLs", true);
-            }
+            string W32TimeDLLPath = String.Format($"C:\\{Environment.SpecialFolder.Windows}\\System32\\W32Time.dll");
+            AddMitigationResult(results,
+                "Block additions / modification to W32Time DLL",
+                !Utils.FileWritePermissions(W32TimeDLLPath, Program.SIDsToCheck)
+                );
+
             // Check 2: Reg Permissions
-            PrintUtils.PrintInfo("W32Time Reg permissions hardened?");
-            bool RegPermissionsHardened = false;
+            Dictionary<string, bool> RegPermissionsNoWrite = new Dictionary<string, bool>(); ;
             string[] RegPaths = {
                 @"SYSTEM\CurrentControlSet\Services\W32Time\Config",
                 @"SYSTEM\CurrentControlSet\Services\W32Time\Parameters",
+                @"SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders",
                 @"SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient",
                 @"SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpServer"
             };
             foreach (string RegPath in RegPaths)
             {
-                var RegPermissions = Utils.GetRegPermissions("HKLM", RegPath, Program.InterestingSIDs);
-                if (RegPermissions != null)
-                {
-                    RegPermissionsHardened = false;
-                    break;
-                }
+                RegPermissionsNoWrite[RegPath] = !Utils.RegWritePermissions("HKLM", RegPath, Program.SIDsToCheck);
             }
-            AddMitigationResult(results, "Block modification to W32Time parameters in registry", RegPermissionsHardened);
+            AddMitigationResult(results, "Block modification to W32Time parameters in registry", RegPermissionsNoWrite);
             return results;
         }
+
         ////////////////////////////////////
         // Winlogon Helper DLL: T1547.004 //
         ////////////////////////////////////
@@ -611,15 +686,14 @@ namespace Mitigate
                 "Registry Key Permissions");
 
             //Check 1: Applocker
-            PrintUtils.PrintInfo("Is AppLocker Enabled?");
             AddMitigationResult(results, "DLL Whitelisting(Applocker)", SystemUtils.IsAppLockerEnabled());
 
             //Check 2: Winlogon permissions
-            PrintUtils.PrintInfo("Winlogon permissions hardened?");
             AddMitigationResult(results, "Registry Key Permissions", SystemUtils.GetWinlogonRegPermissions());
 
             return results;
         }
+
         //////////////////////////////////////////
         // Security Support Provider: T1547.005 //
         //////////////////////////////////////////
@@ -627,11 +701,11 @@ namespace Mitigate
         {
             Dictionary<string, Mitigation> results = InitiateMitigation("Make LSA run as Protected Process Light");
 
-            PrintUtils.PrintInfo("Checking if LSA is run as a PPL");
             AddMitigationResult(results, "Make LSA run as Protected Process Light", SystemUtils.IsLsaRunAsPPL());
 
             return results;
         }
+
         /////////////////////////////
         // LSASS Driver: T1547.008 //
         /////////////////////////////
@@ -642,19 +716,17 @@ namespace Mitigate
                 "WDCG Enabled",
                 "Safe DLL search mode enabled");
             // Check 1: LSA
-            PrintUtils.PrintInfo("Checking if LSA is run as a PPL");
             AddMitigationResult(results, "Make LSA run as Protected Process Light", SystemUtils.IsLsaRunAsPPL());
 
             // Check 2: Windows Defender Credential Guard
-            PrintUtils.PrintInfo("Checking for WD Credential Guard");
             AddMitigationResult(results, "WDCG Enabled", SystemUtils.IsCredentialGuardEnabled());
 
             // Check 3: Is DLL search mode enabled?
             //https://docs.microsoft.com/en-gb/windows/win32/dlls/dynamic-link-library-search-order
-            PrintUtils.PrintInfo("Is DLL search mode enabled?");
             AddMitigationResult(results, "Safe DLL search mode enabled", SystemUtils.IsSafeDllSafeSearchModeOn());
             return results;
         }
+
         ///////////////////////////////////////
         // Shortcut Modification : T1547.009 //
         ///////////////////////////////////////
@@ -663,25 +735,50 @@ namespace Mitigate
             // https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links
             // https://www.stigviewer.com/stig/windows_server_2008_r2_member_server/2015-06-25/finding/V-26482
             Dictionary<string, Mitigation> results = InitiateMitigation("Only administrators are allowed to create symbolic links");
-            // TODO: Check
+            try
+            {
+                List<string> AccountSIDs = UserUtils.GetUsersWithPrivilege("SeCreateSymbolicLinkPrivilege");
+                if (AccountSIDs.Count() == 0)
+                {
+                    // Only Local Admins have the permission
+                    AddMitigationResult(results, "Only administrators are allowed to create symbolic links", Mitigation.True);
+                }
+                else
+                {
+                    bool AccountsInInterestingSIDs = !AccountSIDs.Intersect(Program.SIDsToCheck).Any();
+                    AddMitigationResult(results, "Only administrators are allowed to create symbolic links", AccountsInInterestingSIDs);
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                AddMitigationResult(results, "Only administrators are allowed to create symbolic links", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint("Insufficient rights for this check");
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Only administrators are allowed to create symbolic links", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
             return results;
         }
+
         ///////////////////////////////////////
         // Logon Script (Windows): T1037.001 //
         ///////////////////////////////////////
         public static Dictionary<string, Mitigation> T1037_001()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Hardened registry Permissions");
+            Dictionary<string, Mitigation> results = InitiateMitigation(@"Hardened HKCU\Environment registry permissions");
 
             //Check 1: Hardened registry permissions
-            PrintUtils.PrintInfo("Hardened registry permissions?");
             AddMitigationResult(results,
-                "Hardened registry permissions",
-                Utils.GetRegPermissions("HKCU", @"Environment", Program.InterestingSIDs) != null
+                @"Hardened HKCU\Environment registry permissions",
+                !Utils.RegWritePermissions("HKCU", "Environment", Program.SIDsToCheck)
                 );
 
             return results;
         }
+
         /////////////////////////////////////
         // Network Logon Script: T1037.003 //
         /////////////////////////////////////
@@ -691,6 +788,7 @@ namespace Mitigate
             // TODO
             return results;
         }
+
         ///////////////////////////////
         // Browser Extensions: T1176 //
         ///////////////////////////////
@@ -698,23 +796,22 @@ namespace Mitigate
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
                 "Audit",
-                "Browser extensions whitelist",
-                "Only trusted browser extensions",
+                "Chrome browser extensions whitelist",
+                "Chrome only trusted browser extensions",
                 "User training");
             results["Audit"] = Mitigation.NA;
             results["User training"] = Mitigation.NA;
 
             // Check 1: Extension whitelist
             // Checking only chrome for now
-            PrintUtils.PrintInfo("Checking for chrome extension whitelist");
-            AddMitigationResult(results, "Browser extensions whitelist", SystemUtils.IsChromeExtensionWhitelistEnabled());
+            AddMitigationResult(results, "Chrome browser extensions whitelist", SystemUtils.IsChromeExtensionWhitelistEnabled());
 
             // Check 2: Only trusted extensions
-            PrintUtils.PrintInfo("Checking for only trusted extensions");
-            AddMitigationResult(results, "Only trusted browser extensions", SystemUtils.IsChromeExternalExtectionsBlocked());
+            AddMitigationResult(results, "Chrome only trusted browser extensions", SystemUtils.IsChromeExternalExtectionsBlocked());
 
             return results;
         }
+
         ////////////////////////////
         // Screensaver: T1546.002 //
         ////////////////////////////
@@ -723,25 +820,15 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("Screen Saver Disabled");
             //https://getadmx.com/?Category=Windows_10_2016&Policy=Microsoft.Policies.ControlPanelDisplay::CPL_Personalization_EnableScreenSaver
 
-            PrintUtils.PrintInfo("Screen Saver Disabled?");
             AddMitigationResult(results, "Screen Saver Disabled", SystemUtils.IsScreenSaverDisabled());
 
             return results;
         }
+
         ///////////////////////////////////
         // PowerShell Profile: T1546.013 //
         ///////////////////////////////////
-        /* TODO: Check for profile lo
-        a. AllUsersAllHosts - %windir%\System32\WindowsPowerShell\v1.0\profile.ps1
-        b. AllUsersAllHosts (WoW64) - %windir%\SysWOW64\WindowsPowerShell\v1.0\profile.ps1
-        c. AllUsersCurrentHost - %windir%\System32\WindowsPowerShell\v1.0\Microsoft.PowerShell_profile.ps1
-        d. AllUsersCurrentHost (ISE) - %windir%\System32\WindowsPowerShell\v1.0\Microsoft.PowerShellISE_profile.ps1
-        e. AllUsersCurrentHost (WoW64) – %windir%\SysWOW64\WindowsPowerShell\v1.0\Microsoft.PowerShell_profile.ps1
-        f. AllUsersCurrentHost (ISE - WoW64) - %windir%\SysWOW64\WindowsPowerShell\v1.0\Microsoft.PowerShellISE_profile.ps1
-        g. CurrentUserAllHosts - %homedrive%%homepath%\[My ]Documents\profile.ps1
-        h. CurrentUserCurrentHost - %homedrive%%homepath%\[My ]Documents\Microsoft.PowerShell_profile.ps1
-        i. CurrentUserCurrentHost (ISE) - %homedrive%%homepath%\[My ]Documents\Microsoft.PowerShellISE_profile.ps1
-         */
+
         public static Dictionary<string, Mitigation> T1546_013()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
@@ -749,22 +836,28 @@ namespace Mitigate
                 "Make Profile Files immutable. Allow only certain admins to changes them",
                 "Avoid PowerShell profiles"
                 );
+
             // Check 1: Powershell execution policy
-            PrintUtils.PrintInfo("Powershell only signed scripts?");
             string[] SatisfyingPolicies = { "AllSigned", "RemoteSigned", "Restricted" };
             string ExecutionPolicy = SystemUtils.GetPowershellExecutionPolicy();
             AddMitigationResult(results, "Enforce execution of only signed PowerShell scripts", SatisfyingPolicies.Contains(ExecutionPolicy));
 
             // Check 2: Are profile files immutable by non privileged users?
-            // TODO
+
+            AddMitigationResult(
+                results,
+               "Make Profile Files immutable. Allow only certain admins to changes them",
+                SystemUtils.GetPowerShellProfilePermissions(Program.SIDsToCheck)
+               );
 
             // Avoiding PowerShell profiles is not measurable
             AddMitigationResult(results, "Avoid PowerShell profiles", Mitigation.CannotBeMeasured);
 
             return results;
         }
+
         //////////////////////////////////////
-        // T1546.008: Accessbility Features //
+        // T1546.008: Accessibility Features //
         //////////////////////////////////////
         public static Dictionary<string, Mitigation> T1546_008()
         {
@@ -775,109 +868,198 @@ namespace Mitigate
             );
             // Check 1: Application Whitelisting
             // TODO: Check for Software Restriction policies
-            PrintUtils.PrintInfo("Checking for AppLocker or WDAG");
             bool ExecutionPrevention = SystemUtils.IsAppLockerEnabled() || SystemUtils.IsWDACEnabled();
             AddMitigationResult(results, "Execution Prevention", ExecutionPrevention);
 
-            // Check 2: Remote Desktop Gateway
-            // TODO
-
             //Check 3: NLA for RDP
-            PrintUtils.PrintInfo("RDP Network Level Authentication Enabled?");
             AddMitigationResult(results, "Enabled Network Level Authentication for RDP", SystemUtils.IsRdpNLAEnabled());
 
             return results;
         }
+
         /////////////////////////////
         // T1546.009: AppCert DLLs //
         /////////////////////////////
         public static Dictionary<string, Mitigation> T1546_009()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Execution Prevention");
-            // Check 1: Application Whitelisting
-            // TODO: Check for Software Restriction policies
-            PrintUtils.PrintInfo("Checking for AppLocker or WDAG");
-            bool ExecutionPrevention = SystemUtils.IsAppLockerEnabled() || SystemUtils.IsWDACEnabled();
-            AddMitigationResult(results, "Execution Prevention", ExecutionPrevention);
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                   "Attack Surface Reduction Rules",
+                   "AppLocker Rules on DLLs"
+               );
+
+            // Check 1: ASR
+
+            try
+            {
+                if (SystemUtils.IsASREnabled())
+                {
+                    List<string> RelevantRuleGuids = new List<string>()
+                    {
+                        {"BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550"},
+                        {"01443614-cd74-433a-b99e-2ecdc07bfc25"},
+                        {"b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4"}
+                    };
+                    AddMitigationResult(results, "Attack Surface Reduction Rules", SystemUtils.GetASRRulesStatus(RelevantRuleGuids));
+                }
+                else
+                {
+                    AddMitigationResult(results, "Attack Surface Reduction Rules", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Attack Surface Reduction Rules", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
+            // Check 2: AppLocker on DLLs
+            try
+            {
+                if (SystemUtils.IsAppLockerEnabled("DLL"))
+                {
+                    var DllRules = SystemUtils.GetAppLockerRules("DLL");
+                    if (DllRules.Count() > 0)
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", DllRules);
+                    }
+                    else
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "AppLocker Rules on DLLs", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
 
             return results;
         }
+
         /////////////////////////////
         // T1546.010: AppInit DLLs //
         /////////////////////////////
         public static Dictionary<string, Mitigation> T1546_010()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Execution Prevention", "Secure Boot");
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Attack Surface Reduction Rules",
+                "AppLocker Rules on DLLs",
+                "Secure Boot"
+                );
             // Check 1: Application Whitelisting
-            // TODO: Check for Software Restriction policies
-            PrintUtils.PrintInfo("Checking for AppLocker or WDAG");
-            bool ExecutionPrevention = SystemUtils.IsAppLockerEnabled() || SystemUtils.IsWDACEnabled();
-            AddMitigationResult(results, "Execution Prevention", ExecutionPrevention);
+            // Check 1: ASR
 
-            // Check 2: Secure Boot
-            PrintUtils.PrintInfo("Is secure boot enabled");
+            if (SystemUtils.IsASREnabled())
+            {
+                List<string> RelevantRuleGuids = new List<string>()
+                {
+                    {"BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550"},
+                    {"01443614-cd74-433a-b99e-2ecdc07bfc25"},
+                    {"b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4"}
+                };
+                AddMitigationResult(results, "Attack Surface Reduction Rules", SystemUtils.GetASRRulesStatus(RelevantRuleGuids));
+            }
+            else
+            {
+                AddMitigationResult(results, "Attack Surface Reduction Rules", false);
+            }
+
+            // Check 2: AppLocker on DLLs
+            try
+            {
+                if (SystemUtils.IsAppLockerEnabled("DLL"))
+                {
+                    var DllRules = SystemUtils.GetAppLockerRules("DLL");
+                    if (DllRules.Count() > 0)
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", DllRules);
+                    }
+                    else
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Attack Surface Reduction Rules", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
+            // Check 3: Secure Boot
             AddMitigationResult(results, "Secure Boot", SystemUtils.IsSecureBootEnabled());
 
             return results;
         }
+
         ///////////////////////////////////////
         // T1137.001: Office Template Macros //
         ///////////////////////////////////////
         public static Dictionary<string, Mitigation> T1137_001()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Disabled/Signed Macros", "Disabled/Signed Addins");
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Disable or only allow signed macros",
+                "Disable or only allow signed addins");
             try
             {
                 // Check 1: Disabled/Signed Macros
-                PrintUtils.PrintInfo("Are macros disabled or signed only?");
                 // Disabled holistically?
                 if (OfficeUtils.IsVBADisabled())
                 {
-                    AddMitigationResult(results, "Disabled/Signed Macros", true);
+                    AddMitigationResult(results, "Disable or only allow signed macros", true);
                 }
                 else
                 {
                     // Disabled on the application level?
-                    AddMitigationResult(results, "Disabled/Signed Macros", OfficeUtils.GetMacroConf());
+                    AddMitigationResult(results, "Disable or only allow signed macros", OfficeUtils.GetMacroConf());
                 }
                 // Maybe I will add a check for disabled macros downloaded from the internet or ASR rule checks (https://www.ncsc.gov.uk/guidance/macro-security-for-microsoft-office)
             }
             catch (OfficeUtils.OfficeNotInstallException ex)
             {
-                AddMitigationResult(results, "Disabled/Signed Addins", Mitigation.Failed);
+                AddMitigationResult(results, "Disable or only allow signed macros", Mitigation.NA);
                 PrintUtils.ErrorPrint(ex.Message);
             }
-
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Disable or only allow signed macros", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
             // Check 2: Disabled/Signed Addins
             try
             {
-                PrintUtils.PrintInfo("Are addins disabled or signed only?");
-                AddMitigationResult(results, "Disabled/Signed Addins", OfficeUtils.GetAddinsConf());
+                AddMitigationResult(results, "Disable or only allow signed addins", OfficeUtils.GetAddinsConf());
             }
             catch (OfficeUtils.OfficeNotInstallException ex)
             {
-                AddMitigationResult(results, "Disabled/Signed Addins", Mitigation.Failed);
+                AddMitigationResult(results, "Disable or only allow signed addins", Mitigation.NA);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Disable or only allow signed addins", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             return results;
         }
+
         ////////////////////////////
         // T1137.002: Office Test //
         ////////////////////////////
         public static Dictionary<string, Mitigation> T1137_002()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Create and Harden Registry Key");
-            PrintUtils.PrintInfo("Is office test registry key hardened?");
-            // Check if the key exists
-            string RegPath = @"Software\Microsoft\Office test\Special\Perf";
-            if (!Utils.RegExists("HKCU", RegPath, "Default"))
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                @"Create registry and harden its permissions");
+
+            try
             {
-                AddMitigationResult(results, "Create and Harden Registry Key", false);
+                AddMitigationResult(results, @"Create registry and harden its permissions", OfficeUtils.CheckTestRegKey());
             }
-            else
+            catch (OfficeUtils.OfficeNotInstallException ex)
             {
-                var HavePermissionsToAlter = Utils.GetRegPermissions("HKCU", RegPath, Program.InterestingSIDs) is null ? false : true;
-                AddMitigationResult(results, "Create and Harden Registry Key", HavePermissionsToAlter);
+                AddMitigationResult(results, @"Create registry and harden its permissions", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
             }
             return results;
         }
@@ -892,7 +1074,6 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("Secure Boot", "PAM", "Patch BIOS and EFI");
 
             // Check 1: Checking for Secure Boot
-            PrintUtils.PrintInfo("Secure Boot Enabled?");
             AddMitigationResult(results, "Secure Boot", SystemUtils.IsSecureBootEnabled());
 
             return results;
@@ -906,7 +1087,6 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("Secure Boot", "PAM");
 
             // Check 1: Checking for Secure Boot
-            PrintUtils.PrintInfo("Secure Boot Enabled?");
             AddMitigationResult(results, "Secure Boot", SystemUtils.IsSecureBootEnabled());
 
             return results;
@@ -920,7 +1100,6 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("Secure Boot", "PAM");
 
             // Check 1: Checking for Secure Boot
-            PrintUtils.PrintInfo("Secure Boot Enabled?");
             AddMitigationResult(results, "Secure Boot", SystemUtils.IsSecureBootEnabled());
 
             return results;
@@ -931,11 +1110,14 @@ namespace Mitigate
         //////////////////////////////////
         public static Dictionary<string, Mitigation> T1110_001()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Windows Lockout Policy", "MFA", "Hardened Password Policy");
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Windows Lockout Policy",
+                "MFA",
+                "Hardened Password Policy"
+                );
 
             // Check 1: Windows Lockout Policy
-            PrintUtils.PrintInfo("Is an AD lockout policy set?");
-            AddMitigationResult(results, "Windows Lockout Policy", true);
+            AddMitigationResult(results, "Windows Lockout Policy", UserUtils.IsLockOutPolicySet());
 
             return results;
         }
@@ -963,11 +1145,10 @@ namespace Mitigate
         //////////////////////////////////////////////
         public static Dictionary<string, Mitigation> T1555_003()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Chrome Password Manager Disabled?");
+            Dictionary<string, Mitigation> results = InitiateMitigation("Chrome Password Manager Disabled");
 
             // Check 1: Is Chrome PW manager disabled?
-            PrintUtils.PrintInfo("Is Chrome Password Manager Disabled?");
-            AddMitigationResult(results, "Chrome Password Manager Disabled?", SystemUtils.IsChromePasswordManagerDisabled());
+            AddMitigationResult(results, "Chrome Password Manager Disabled", SystemUtils.IsChromePasswordManagerDisabled());
 
             return results;
         }
@@ -984,7 +1165,6 @@ namespace Mitigate
 
             // Check 1: Which users/groups can create token objects?
             // https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/user-rights-assignment
-            PrintUtils.PrintInfo("Checking for harden permissions on user groups that can create tokens");
             try
             {
                 List<string> AccountSIDs = UserUtils.GetUsersWithPrivilege("SeCreateTokenPrivilege");
@@ -995,22 +1175,21 @@ namespace Mitigate
                 }
                 else
                 {
-                    bool AccountsInInterestingSIDs = !AccountSIDs.Intersect(Program.InterestingSIDs).Any();
+                    bool AccountsInInterestingSIDs = !AccountSIDs.Intersect(Program.SIDsToCheck).Any();
                     AddMitigationResult(results, "Hardened create token object rights", AccountsInInterestingSIDs);
                 }
             }
             catch (UnauthorizedAccessException)
             {
-                AddMitigationResult(results, "Hardened create token object rights", Mitigation.Failed);
+                AddMitigationResult(results, "Hardened create token object rights", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint("Insufficient rights for this check");
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Hardened create token object rights", Mitigation.Failed);
+                AddMitigationResult(results, "Hardened create token object rights", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             // Check 2: Which users/groups can replace token object rights
-            PrintUtils.PrintInfo("Checking for harden permissions on user groups that can replace process tokens");
             try
             {
                 List<string> AccountSIDs = UserUtils.GetUsersWithPrivilege("SeAssignPrimaryTokenPrivilege");
@@ -1021,22 +1200,21 @@ namespace Mitigate
                 }
                 else
                 {
-                    bool AccountsInInterestingSIDs = !AccountSIDs.Intersect(Program.InterestingSIDs).Any();
+                    bool AccountsInInterestingSIDs = !AccountSIDs.Intersect(Program.SIDsToCheck).Any();
                     AddMitigationResult(results, "Hardened replace token object rights", AccountsInInterestingSIDs);
                 }
             }
             catch (UnauthorizedAccessException)
             {
-                AddMitigationResult(results, "Hardened replace token object rights", Mitigation.Failed);
+                AddMitigationResult(results, "Hardened replace token object rights", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint("Insufficient rights for this check");
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Hardened replace token object rights", Mitigation.Failed);
+                AddMitigationResult(results, "Hardened replace token object rights", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             // Check 3: Is LAPS enabled?
-            PrintUtils.PrintInfo("LAPS enabled?");
             AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
             return results;
 
@@ -1064,7 +1242,6 @@ namespace Mitigate
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
                 "Prevent Administrator Accounts from being enumerated when a user attempts to elevate a running application");
-            PrintUtils.PrintInfo("Is UAC Admin acccount enumeration disabled?");
             var RegPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI";
             var RegKey = "EnumerateAdministrators";
             var RegValue = Utils.GetRegValue("HKLM", RegPath, RegKey);
@@ -1095,12 +1272,11 @@ namespace Mitigate
             // Mitigations can be based on https://www.microsoft.com/en-us/download/details.aspx?id=36036 instead of ATT&CK
             Dictionary<string, Mitigation> results = InitiateMitigation(
                 "Credential Overlap",  // no test defined yet
-                "Update Software(KB2871997)",
+                "KB2871997 installed and configured",
                 "PtH to apply UAC restring to local account on network logon",
                 "No domain users as local admins");
 
             // Check 1: Checking for KB2871997
-            PrintUtils.PrintInfo("Is KB2871997 installed and configured?");
             try
             {
                 string OSVersion = SystemUtils.GetOSVersion();
@@ -1112,7 +1288,7 @@ namespace Mitigate
                 if (DoubleVersion >= 6.3)
                 {
                     // No need for the hotfix
-                    AddMitigationResult(results, "Update Software(KB2871997)", Mitigation.True);
+                    AddMitigationResult(results, "KB2871997 installed and configured", Mitigation.True);
                 }
                 else
                 {
@@ -1139,12 +1315,11 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Update Software(KB2871997)", Mitigation.Failed);
+                AddMitigationResult(results, "KB2871997 installed and configured", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
             // Check 2: PtH to apply UAC restring to local account on network logon
-            PrintUtils.PrintInfo("Are UAC restrictions applied on network logon?");
             try
             {
                 // Is the LocalAccountTokenFilterPolicy enabled?
@@ -1161,19 +1336,18 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "PtH to apply UAC restring to local account on network logon", Mitigation.Failed);
+                AddMitigationResult(results, "PtH to apply UAC restring to local account on network logon", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
             // Check 3: No domain accounts as local admins
-            PrintUtils.PrintInfo("Are domain accounts excluded from local administrators?");
             try
             {
                 AddMitigationResult(results, "No domain users as local admins", !UserUtils.IsADomainUserMemberofLocalAdmins());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "No domain users as local admins", Mitigation.Failed);
+                AddMitigationResult(results, "No domain users as local admins", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
@@ -1187,18 +1361,16 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation("LAPS enabled", "No domain users as local admins");
 
             // Check 1: Is LAPS enabled?
-            PrintUtils.PrintInfo("LAPS enabled?");
             AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
 
             // Check 2: No domain accounts as local admins
-            PrintUtils.PrintInfo("Are domain accounts excluded from local administrators?");
             try
             {
                 AddMitigationResult(results, "No domain users as local admins", !UserUtils.IsADomainUserMemberofLocalAdmins());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "No domain users as local admins", Mitigation.Failed);
+                AddMitigationResult(results, "No domain users as local admins", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             return results;
@@ -1218,7 +1390,6 @@ namespace Mitigate
 
             // Check 2: Safe DLL Search Mode
             // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order?redirectedfrom=MSDN
-            PrintUtils.PrintInfo("Ensuring Safe DLL Search mode is on");
             AddMitigationResult(results, "Safe DLL Search Mode", SystemUtils.IsSafeDllSafeSearchModeOn());
 
             return results;
@@ -1234,7 +1405,6 @@ namespace Mitigate
             AddMitigationResult(results, "Audit", Mitigation.CannotBeMeasured);
 
             // Check 1: Checking for UAC privilege elevation consent behaviour
-            PrintUtils.PrintInfo("Looking for UAC default deny behaviour");
             AddMitigationResult(results, "UAC privilege elevation default deny", SystemUtils.IsUACSetToDefaultDeny());
 
             return results;
@@ -1254,31 +1424,26 @@ namespace Mitigate
                 );
 
             // Check 1: Credential Guard
-            PrintUtils.PrintInfo("Checking for Credential Guard");
             AddMitigationResult(results, "Windows Credential Guard", SystemUtils.IsCredentialGuardEnabled());
 
             // Check 2: Disabling Outbound NTLM
-            PrintUtils.PrintInfo("Is Outbound NTML disabled?");
             AddMitigationResult(results, "UAC privilege elevation default deny", SystemUtils.IsOutboundNTLMDisabled());
 
             // Check 3: LAPS
-            PrintUtils.PrintInfo("LAPS enabled?");
             AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
 
             // Check 4: Domain Users in local admin group
-            PrintUtils.PrintInfo("Are domain accounts excluded from local administrators?");
             try
             {
                 AddMitigationResult(results, "No domain users as local admins", !UserUtils.IsADomainUserMemberofLocalAdmins());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "No domain users as local admins", Mitigation.Failed);
+                AddMitigationResult(results, "No domain users as local admins", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
             // Check 5: LSASS as PPL
-            PrintUtils.PrintInfo("Is LSA running as PPL?");
             AddMitigationResult(results, "Run LSASS as PPL", SystemUtils.IsLsaRunAsPPL());
 
             return results;
@@ -1296,22 +1461,19 @@ namespace Mitigate
 
 
             // Check 1: Disabling Outbound NTLM
-            PrintUtils.PrintInfo("Is Outbound NTML disabled?");
-            AddMitigationResult(results, "UAC privilege elevation default deny", SystemUtils.IsOutboundNTLMDisabled());
+            AddMitigationResult(results, "Disabling/Restricting Outbound NTLM", SystemUtils.IsOutboundNTLMDisabled());
 
             // Check 2: LAPS
-            PrintUtils.PrintInfo("LAPS enabled?");
             AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
 
             // Check 3: Domain Users in local admin group
-            PrintUtils.PrintInfo("Are domain accounts excluded from local administrators?");
             try
             {
                 AddMitigationResult(results, "No domain users as local admins", !UserUtils.IsADomainUserMemberofLocalAdmins());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "No domain users as local admins", Mitigation.Failed);
+                AddMitigationResult(results, "No domain users as local admins", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
@@ -1330,7 +1492,6 @@ namespace Mitigate
                 );
 
             // Check 1: Is protected view enabled? //
-            PrintUtils.PrintInfo("Is protected view enabled");
             try
             {
                 var ProtectedViewInfo = OfficeUtils.GetProtectedViewInfo();
@@ -1343,17 +1504,15 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Protected View Enabled", Mitigation.Failed);
+                AddMitigationResult(results, "Protected View Enabled", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             // Check 2: Is DCOM disabled?
-            PrintUtils.PrintInfo("Is DCOM fully disabled?");
             AddMitigationResult(results, "Disable DCOM", SystemUtils.IsDCOMDisabled());
 
             // Check 3: Windows Firewall rules //TODO
 
             // Check 4: Default DCOM permissions hardened
-            PrintUtils.PrintInfo("Are COM permissions default permissions only to admins");
             AddMitigationResult(results, "Default COM permissions", SystemUtils.GetDefaultComPermissions());
 
             return results;
@@ -1371,25 +1530,22 @@ namespace Mitigate
                 "Restrict RDP traffic between network segments",
                 "Shorter session timeout and session max time",
                 "Remove Local Admins from RDP groups",
-                "Least Privelege on RDP Users"
+                "Least Privilege on RDP Users"
                 );
 
             AddMitigationResult(results, "Audit", Mitigation.CannotBeMeasured);
             AddMitigationResult(results, "Use remote desktop gateways", Mitigation.CannotBeMeasured);
             AddMitigationResult(results, "Use MFA", Mitigation.CannotBeMeasured);
-            AddMitigationResult(results, "Least Privelege on RDP Users", Mitigation.CannotBeMeasured);
+            AddMitigationResult(results, "Least Privilege on RDP Users", Mitigation.CannotBeMeasured);
 
             // Check 1: Is RDP disabled on the machine //
-            PrintUtils.PrintInfo("Is RDP disabled");
             AddMitigationResult(results, "RDP Disabled", SystemUtils.IsRDPDisabled());
 
 
             // Check 2: Shorter session timeout and session max time
-            PrintUtils.PrintInfo("Sessions timing limits");
             AddMitigationResult(results, "Shorter session timeout and session max time", SystemUtils.GetRDPSessionConfig());
 
             // Check 3: Local Admin Groups in RDP
-            PrintUtils.PrintInfo("Are local admins excluded from RDP?");
             try
             {
                 List<string> AllowedSIDs = UserUtils.GetUsersWithPrivilege("SeRemoteInteractiveLogonRight");
@@ -1398,17 +1554,26 @@ namespace Mitigate
             }
             catch (UnauthorizedAccessException)
             {
-                AddMitigationResult(results, "Remove Local Admins from RDP groups", Mitigation.Failed);
+                AddMitigationResult(results, "Remove Local Admins from RDP groups", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint("Insufficient rights for this check");
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Remove Local Admins from RDP groups", Mitigation.Failed);
+                AddMitigationResult(results, "Remove Local Admins from RDP groups", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
             return results;
         }
+        ////////////////////////////////
+        // T1563.002: RDP Hijackings //
+        ///////////////////////////////
+        public static Dictionary<string, Mitigation> T1563_002()
+        {
+            // Same mitigations as RDP(T1021.001)
+            return T1021_001();
+        }
+
         /////////////////////////////////////////
         // T1021.002: SMB/Windows Admin Shares //
         /////////////////////////////////////////
@@ -1421,11 +1586,9 @@ namespace Mitigate
                 );
 
             // Check 1: LAPS
-            PrintUtils.PrintInfo("LAPS enabled?");
             AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
 
             // Check 2: Remote local admin login
-            PrintUtils.PrintInfo("Are local admins denied remote logon?");
             try
             {
                 List<string> BlockedSIDs = UserUtils.GetUsersWithPrivilege("SeDenyRemoteInteractiveLogonRight");
@@ -1436,24 +1599,23 @@ namespace Mitigate
             }
             catch (UnauthorizedAccessException)
             {
-                AddMitigationResult(results, "Deny remote use of local admin credentials to log into the system", Mitigation.Failed);
+                AddMitigationResult(results, "Deny remote use of local admin credentials to log into the system", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint("Insufficient rights for this check");
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Deny remote use of local admin credentials to log into the system", Mitigation.Failed);
+                AddMitigationResult(results, "Deny remote use of local admin credentials to log into the system", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
             // Check 3: No domain users as local admins
-            PrintUtils.PrintInfo("No domain users as local admins");
             try
             {
                 AddMitigationResult(results, "No domain users as local admins", !UserUtils.IsADomainUserMemberofLocalAdmins());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "No domain users as local admins", Mitigation.Failed);
+                AddMitigationResult(results, "No domain users as local admins", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
             return results;
@@ -1465,61 +1627,444 @@ namespace Mitigate
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
                 "Disable WinRM",
-                "Only allow WinRM from specific devices",
+                "Inbound traffic restricted by Windows Firewall",
+                "Inbound traffic restricted by GPO",
                 "No domain users as local admins"
                 );
 
             // Check 1: Disable WinRM
-            PrintUtils.PrintInfo("WinRM Disabled?");
             var ServiceConfig = Utils.GetServiceConfig("WinRM");
             if (ServiceConfig["StartUpType"] != "AUTOMATIC")
             {
-                AddMitigationResult(results, "Disable WinRM", true);
+                AddMitigationResult(results, "Disabled WinRM", true);
             }
             else
             {
-                AddMitigationResult(results, "Disable WinRM", false);
+                AddMitigationResult(results, "Disabled WinRM", false);
             }
 
             // Check 2: Check if WinRM is configured to only allow traffic from specific devices
-            PrintUtils.PrintInfo("WinRM inbound traffic filtering");
             try
             {
-                // Is traffic restricted on host firewall?
-                var AllRules = SystemUtils.GetEnabledFirewallRules();
-                var WinRmRules = AllRules.Where(o => o.LocalPorts.Contains("5985") || o.LocalPorts.Contains("5986"));
-                if (!WinRmRules.Any(o => o.RemoteAddresses == "Any"))
-                {
-                    // No rules exist that allow for unrestricted traffic
-                    AddMitigationResult(results, "Only allow WinRM from specific devices", true);
-                }
-                else if (SystemUtils.IsWinRMFilteredByGPO())
-                {
-                    // Traffic is restricted on the application level by GPO
-                    AddMitigationResult(results, "Only allow WinRM from specific devices", true);
-                }
-                else
-                {
-                    // Traffic does not seem restricted
-                    AddMitigationResult(results, "Only allow WinRM from specific devices", false);
-                }
-            } catch (Exception ex)
+                // Is traffic restricted on host firewall
+                AddMitigationResult(
+                    results,
+                    "Inbound traffic restricted by Windows Firewall",
+                    FirewallUtils.TrafficRestrictedToSpecificIPs("5985", "5986")
+                    );
+            }
+            catch (Exception ex)
             {
-                AddMitigationResult(results, "Only allow WinRM from specific devices", Mitigation.Failed);
+                AddMitigationResult(results, "Inbound traffic restricted by Windows Firewall", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+            // Check 3: Traffic limited on the application level by GPO
+            try
+            {
+                AddMitigationResult(results, "Inbound traffic restricted by GPO", SystemUtils.IsWinRMFilteredByGPO());
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Inbound traffic restricted by GPO", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
 
-            // Check 3: No domain users as local admins
-            PrintUtils.PrintInfo("No domain users as local admins");
+            // Check 4: No domain users as local admins
             try
             {
                 AddMitigationResult(results, "No domain users as local admins", !UserUtils.IsADomainUserMemberofLocalAdmins());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "No domain users as local admins", Mitigation.Failed);
+                AddMitigationResult(results, "No domain users as local admins", Mitigation.TestFailed);
                 PrintUtils.ErrorPrint(ex.Message);
             }
+            return results;
+        }
+        /////////////////////////////////////////////////////
+        // T1557.001: LLMNR/NBT-NS Poisoning and SMB Relay //
+        /////////////////////////////////////////////////////
+        public static Dictionary<string, Mitigation> T1557_001()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Disable LLMNR",
+                "Disable NetBIOS",
+                "Firewall drop rules on inbound LLMNR/NetBIOS ports",
+                "SMB Signing",
+                "IDS/IPS",
+                "Network Segmentation"
+                );
+
+            // Check 1: LLMNR status
+            AddMitigationResult(results, "Disable LLMNR", SystemUtils.IsLLMNRDisabled());
+
+            // Check 2: NetBIOS status
+            AddMitigationResult(results, "Disable NetBIOS", SystemUtils.GetNetBIOSConfig());
+
+            // Check 3: FW rules
+            // UDP 137, UDP 138, TCP 139, TCP 5355, and UDP 5355
+            try
+            {
+
+                AddMitigationResult(
+                    results,
+                    "Firewall drop rules on inbound LLMNR/NetBIOS ports",
+                    FirewallUtils.TrafficRestrictedToSpecificIPs("137", "138", "139", "5355", "5355"));
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Firewall drop rules on inbound LLMNR/NetBIOS ports", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
+            // Check 4: SMB Signing Enforced
+            AddMitigationResult(results, "SMB Signing", SystemUtils.IsSMBSigningForced());
+
+            return results;
+        }
+
+        ///////////////////////////////////
+        // T1218.001: Compiled HTML File //
+        ///////////////////////////////////
+        public static Dictionary<string, Mitigation> T1218_001()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Prevent execution of hh.exe",
+                    "Block .chm files from the internet"
+                );
+            // Check 1: Checking for hh.exe
+            AddMitigationResult(results, "Prevent execution of hh.exe", Utils.CommandFileAccessible("hh.exe"));
+
+            // Check 2: Checking from webcontent restrictions
+            try
+            {
+                AddMitigationResult(results, "Block .chm files from the internet", NetworkRestrictionUtils.IsFileTypeBlocked("chm"));
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Block .chm files from the internet", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
+            return results;
+        }
+        //////////////////////
+        // T1218.003: CMSTP //
+        //////////////////////
+        public static Dictionary<string, Mitigation> T1218_003()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Prevent execution of cmstp.exe"
+                );
+            AddMitigationResult(results, "Prevent execution of cmstp.exe", Utils.CommandFileAccessible("cmstp.exe /s"));
+
+            return results;
+        }
+        ////////////////////////////
+        // T1218.004: InstallUtil //
+        ////////////////////////////
+        public static Dictionary<string, Mitigation> T1218_004()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Prevent execution of InstallUtil.exe"
+                );
+            AddMitigationResult(results, "Prevent execution of InstallUtil.exe", Utils.CommandFileAccessible("InstallUtils.exe"));
+
+            return results;
+        }
+        //////////////////////
+        // T1218.005: Mshta //
+        //////////////////////
+        public static Dictionary<string, Mitigation> T1218_005()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Prevent execution of Mshta.exe"
+                );
+            AddMitigationResult(results, "Prevent execution of Mshta.exe", Utils.CommandFileAccessible("Mshta.exe"));
+
+            return results;
+        }
+        /////////////////////////
+        // T1218.008: Odbcconf //
+        /////////////////////////
+        public static Dictionary<string, Mitigation> T1218_008()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Prevent execution of Odbcconf.exe"
+                );
+            AddMitigationResult(results, "Prevent execution of Odbcconf.exe", Utils.CommandFileAccessible("Odbcconf.exe /s"));
+
+            return results;
+        }
+        ///////////////////////////////
+        // T1218.008: Regsvcs/Regasm //
+        ///////////////////////////////
+        public static Dictionary<string, Mitigation> T1218_009()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Prevent execution of Regsvcs.exe",
+                    "Prevent execution of Regasm.exe"
+                );
+            AddMitigationResult(results, "Prevent execution of Regsvcs.exe", Utils.CommandFileAccessible("Regsvcs.exe"));
+
+            AddMitigationResult(results, "Prevent execution of Regasm.exe", Utils.CommandFileAccessible("Regasm.exe"));
+
+            return results;
+        }
+        /////////////////////////
+        // T1218.011: Rundll32 //
+        /////////////////////////
+        public static Dictionary<string, Mitigation> T1218_011()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Attack Surface Reduction Rules",
+                    "AppLocker Rules on DLLs"
+                );
+
+            // Check 1: ASR
+
+            if (SystemUtils.IsASREnabled())
+            {
+                List<string> RelevantRuleGuids = new List<string>()
+                {
+                    {"BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550"},
+                    {"01443614-cd74-433a-b99e-2ecdc07bfc25"},
+                    {"b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4"}
+                };
+                AddMitigationResult(results, "Attack Surface Reduction Rules", SystemUtils.GetASRRulesStatus(RelevantRuleGuids));
+            }
+            else
+            {
+                AddMitigationResult(results, "Attack Surface Reduction Rules", false);
+            }
+
+            // Check 2: AppLocker on DLLs
+            try
+            {
+                if (SystemUtils.IsAppLockerEnabled("DLL"))
+                {
+                    var DllRules = SystemUtils.GetAppLockerRules("DLL");
+                    if (DllRules.Count() > 0)
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", DllRules);
+                    }
+                    else
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "AppLocker Rules on DLLs", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
+            return results;
+        }
+        /////////////////////////
+        // T1218.010: Runsrv32 //
+        /////////////////////////
+        public static Dictionary<string, Mitigation> T1218_010()
+        {
+            return T1218_011();
+        }
+
+        ////////////////////////
+        // T1127.001: MSBuild //
+        ////////////////////////
+        public static Dictionary<string, Mitigation> T1127_001()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Remove MSBuild.exe"
+                );
+            AddMitigationResult(results, "Remove MSBuild.exe", Utils.CommandFileAccessible("MSBuild.exe"));
+
+            return results;
+        }
+
+        //////////////////////////////////////////
+        // T1129: Execution through Module Load //
+        //////////////////////////////////////////
+        public static Dictionary<string, Mitigation> T1129()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                   "Attack Surface Reduction Rules",
+                   "AppLocker Rules on DLLs"
+               );
+
+            // Check 1: ASR
+
+            if (SystemUtils.IsASREnabled())
+            {
+                List<string> RelevantRuleGuids = new List<string>()
+                {
+                    {"BE9BA2D9-53EA-4CDC-84E5-9B1EEEE46550"},
+                    {"01443614-cd74-433a-b99e-2ecdc07bfc25"},
+                    {"b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4"}
+                };
+                AddMitigationResult(results, "Attack Surface Reduction Rules", SystemUtils.GetASRRulesStatus(RelevantRuleGuids));
+            }
+            else
+            {
+                AddMitigationResult(results, "Attack Surface Reduction Rules", false);
+            }
+
+            // Check 2: AppLocker on DLLs
+            try
+            {
+                if (SystemUtils.IsAppLockerEnabled("DLL"))
+                {
+                    var DllRules = SystemUtils.GetAppLockerRules("DLL");
+                    if (DllRules.Count() > 0)
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", DllRules);
+                    }
+                    else
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "AppLocker Rules on DLLs", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
+            return results;
+        }
+        ///////////////////////////////
+        // T1221: Template Injection //
+        ///////////////////////////////
+        public static Dictionary<string, Mitigation> T1221()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Antivirus",
+                "Macros Disabled/Signed Only",
+                "Network Intrusion Prevention",
+                "User Training"
+                );
+            AddMitigationResult(results, "Network Intrusion Prevention", Mitigation.CannotBeMeasured);
+            AddMitigationResult(results, "User Training", Mitigation.CannotBeMeasured);
+
+            // Check 1: Antivirus
+            AddMitigationResult(results, "Antivirus", SystemUtils.DoesAVExist());
+
+            // Check 2: Macros
+            try
+            {
+                if (OfficeUtils.IsVBADisabled())
+                {
+                    AddMitigationResult(results, "Macros Disabled/Signed Only", true);
+
+                }
+                else
+                {
+                    AddMitigationResult(results, "Macros Disabled/Signed Only", OfficeUtils.GetMacroConf());
+                }
+            }
+            catch (OfficeUtils.OfficeNotInstallException ex)
+            {
+                AddMitigationResult(results, "Macros Disabled/Signed Only", Mitigation.NA);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Macros Disabled/Signed Only", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+            return results;
+        }
+        /////////////////////////////////////////
+        // T1553.004: Install Root Certificate //
+        /////////////////////////////////////////
+        public static Dictionary<string, Mitigation> T1553_004()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Prevent non-admin users from making root certificate installations",
+                "HTTP Public Key Pinning (HPKP) - Application level control"
+                );
+
+            // Can't emumerate application level control
+            AddMitigationResult(results, "HTTP Public Key Pinning(HPKP) - Application level control", Mitigation.NA);
+            
+            // Check 1:
+            AddMitigationResult(
+                results,
+                "Prevent non-admin users from making root certificate installations",
+                SystemUtils.CanNonAdminUsersAddRootCertificates()
+                );
+
+            return results;
+        }
+        //////////////////////////////////////////////////////////////////////
+        // T1546.003: Windows Management Instrumentation Event Subscription //
+        //////////////////////////////////////////////////////////////////////
+        public static Dictionary<string, Mitigation> T1546_003()
+        {
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                    "Enable LAPS",
+                    "Attack Surface Reduction Rules",
+                    $"No remote WMI access to {Program.UserToCheck.SamAccountName}"
+                );
+
+            // Check 1: Is LAPS enabled?
+            AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            // Check 2: WMI Permissions
+            try
+            {
+                var wmiRemoteDeny = new Dictionary<string, bool>();
+                ViewNameSpaceSecurity viewns = new ViewNameSpaceSecurity(@"root\cimv2", false);
+                foreach (var item in viewns.GetNameSpaceSDDL(Environment.MachineName))
+                {
+                    var NameSpace = item.Key;
+                    var SDDLString = item.Value;
+                    var DecodedSDDL = Utils.PermissionsDecoder.DecodeSddlString<Utils.WMIPermissionsMask>(SDDLString);
+                    var SIDsToCheckPermissions = DecodedSDDL.DACL.Where(o => Program.SIDsToCheck.Contains(o.Trustee) && o.AccessType == "AccessAllowed")
+                                                                    .Select(o => o.Permissions);
+
+                    wmiRemoteDeny[NameSpace] = true;
+                    foreach (var permission in SIDsToCheckPermissions)
+                    {
+                        if (permission.Contains("WMI_REMOTE_ENABLE") && permission.Contains("WMI_ENABLE_ACCOUNT"))
+                        {
+                            wmiRemoteDeny[NameSpace] = false;
+                            break;
+                        }
+                    }
+                }
+                AddMitigationResult(results, $"No remote WMI access to {Program.UserToCheck.SamAccountName}", wmiRemoteDeny);
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, $"No remote WMI access to {Program.UserToCheck.SamAccountName}", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+
+            }
+            // Check 3: ASR Rule
+            try
+            {
+                if (SystemUtils.IsASREnabled())
+                {
+                    List<string> RelevantRuleGuids = new List<string>()
+                {
+                    {"e6db77e5-3df2-4cf1-b95a-636979351e5b"},
+                };
+                    AddMitigationResult(results, "Attack Surface Reduction Rules", SystemUtils.GetASRRulesStatus(RelevantRuleGuids));
+                }
+                else
+                {
+                    AddMitigationResult(results, "Attack Surface Reduction Rules", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Attack Surface Reduction Rules", Mitigation.TestFailed);
+                PrintUtils.ErrorPrint(ex.Message);
+            }
+
             return results;
         }
     }

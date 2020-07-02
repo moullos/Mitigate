@@ -1,21 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Security.Principal;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.DirectoryServices.AccountManagement;
 using System.ComponentModel;
-using System.Net;
-using System.Security.Principal;
-using System.Management;
-using System.Security.AccessControl;
-using Microsoft.VisualBasic;
-using System.DirectoryServices.ActiveDirectory;
+using System.DirectoryServices.AccountManagement;
 using System.Linq;
-
-using LSA_HANDLE = System.IntPtr;
+using System.Management;
+using System.Runtime.InteropServices;
 using System.Security;
+using System.Security.Principal;
+using LSA_HANDLE = System.IntPtr;
 
 namespace Mitigate
 {
@@ -285,7 +277,6 @@ namespace Mitigate
             [DllImport("samlib.dll", CharSet = CharSet.Unicode)]
             private static extern NTSTATUS SamEnumerateDomainsInSamServer(IntPtr ServerHandle, ref int EnumerationContext, out IntPtr EnumerationBuffer, int PreferedMaximumLength, out int CountReturned);
         }
-        // https://stackoverflow.com/questions/31464835/how-to-programmatically-check-the-password-must-meet-complexity-requirements-g
         public static List<Dictionary<string, string>> GetPasswordPolicy()
         {
             List<Dictionary<string, string>> results = new List<Dictionary<string, string>>();
@@ -350,6 +341,40 @@ namespace Mitigate
             public uint usrmod3_lockout_observation_window;
             public uint usrmod3_lockout_threshold;
         };
+        public static Dictionary<string, string> GetPasswordComplexityPolicy()
+        {
+            /*
+            public uint usrmod0_min_passwd_len;
+            public uint usrmod0_max_passwd_age;
+            public uint usrmod0_min_passwd_age;
+            public uint usrmod0_force_logoff;
+            public uint usrmod0_password_hist_len;
+            */
+            Dictionary<string, string> results = new Dictionary<string, string>();
+            try
+            {
+                USER_MODALS_INFO_0 objUserModalsInfo0 = new USER_MODALS_INFO_0();
+                IntPtr bufPtr;
+                uint lngReturn = NetUserModalsGet(@"\\" + Environment.MachineName, 0, out bufPtr);
+                if (lngReturn == 0)
+                {
+                    objUserModalsInfo0 = (USER_MODALS_INFO_0)Marshal.PtrToStructure(bufPtr, typeof(USER_MODALS_INFO_0));
+                }
+                results.Add("Minimum Password Length", objUserModalsInfo0.usrmod0_min_passwd_len.ToString());
+                results.Add("Max Password Age", objUserModalsInfo0.usrmod0_max_passwd_age.ToString());
+                results.Add("Min Password Age", objUserModalsInfo0.usrmod0_min_passwd_age.ToString());
+                results.Add("Force Logoff", objUserModalsInfo0.usrmod0_force_logoff.ToString());
+                results.Add("Password History Length", objUserModalsInfo0.usrmod0_password_hist_len.ToString());
+
+                //NetApiBufferFree(bufPtr);
+                bufPtr = IntPtr.Zero;
+            }
+            catch (Exception ex)
+            {
+                PrintUtils.ExceptionPrint(ex.Message);
+            }
+            return results;
+        }
         public static Dictionary<string, string> GetLockoutPolicy()
         {
             Dictionary<string, string> results = new Dictionary<string, string>();
@@ -412,7 +437,7 @@ namespace Mitigate
         public static bool IsAdmin(List<string> SIDs)
         {
             SecurityIdentifier builtinAdminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
-            
+
             // In case SID belongs to a group we can directly compare the SID values
             foreach (var SID in SIDs)
             {
@@ -431,17 +456,21 @@ namespace Mitigate
                     return true;
                 }
             }
-
             return false;
+        }
+
+        public static bool IsItRunningAsAdmin()
+        {
+            var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
         /// <summary>
         /// Obtains a list of users SID that have previously logged into the device
         /// </summary>
         /// <returns>List of user SIDs</returns>
-        public static List<string> GetInterestingSIDs()
+        public static UserPrincipal GetLastLoggedInUser()
         {
-            HashSet<string> LoggedInSIDs = new HashSet<string>();
-
             PrincipalContext domainContext = null;
             if (Program.IsDomainJoined)
                 domainContext = new PrincipalContext(ContextType.Domain);
@@ -451,10 +480,11 @@ namespace Mitigate
             // Get users that have logged in
             SelectQuery query = new SelectQuery("Win32_UserProfile");
             var searcher = new ManagementObjectSearcher(query);
+            var results = searcher.Get();
+            var OrderedResults = results.Cast<ManagementObject>().OrderBy(o => o["LastUseTime"]);
 
             //https://stackoverflow.com/questions/18835134/how-to-create-windowsidentity-windowsprincipal-from-username-in-domain-user-form/32165726
-
-            foreach (ManagementObject sid in searcher.Get())
+            foreach (ManagementObject sid in OrderedResults)
             {
                 SecurityIdentifier sidObject = new SecurityIdentifier(sid["SID"].ToString());
                 if (!sidObject.IsAccountSid())
@@ -465,10 +495,7 @@ namespace Mitigate
                     user = UserPrincipal.FindByIdentity(domainContext, IdentityType.Sid, sid["SID"].ToString());
                     if (user != null)
                     {
-                        LoggedInSIDs.Add(user.Sid.Value);
-                        var userIsMemberOf = user.GetAuthorizationGroups().Where(o => o.Guid != null).Select(o => o.Sid.ToString());
-                        foreach (string groupSid in userIsMemberOf)
-                            LoggedInSIDs.Add(groupSid);
+                        return user;
                     }
                 }
 
@@ -476,60 +503,55 @@ namespace Mitigate
                 user = UserPrincipal.FindByIdentity(machineContext, IdentityType.Sid, sid["SID"].ToString());
                 if (user != null)
                 {
-                    LoggedInSIDs.Add(user.Sid.Value);
-                    var userIsMemberOf = user.GetAuthorizationGroups().Select(o => o.Sid.Value);
-                    foreach (string groupSid in userIsMemberOf)
-                        LoggedInSIDs.Add(groupSid);
+                    return user;
+                    //Users.Add(user.SamAccountName);
                 }
             }
-            return LoggedInSIDs.ToList();
+            throw new Exception("No previously logged users found");
         }
+        public static List<string> GetGroups(UserPrincipal user)
+        {
+            HashSet<string> AllSIDs = new HashSet<string>();
+
+            AllSIDs.Add(user.Sid.Value);
+            var userIsMemberOf = user.GetAuthorizationGroups().Select(o => o.Sid.Value);
+            AllSIDs.UnionWith(userIsMemberOf);
+            return AllSIDs.ToList();
+        }
+
+        public static UserPrincipal GetUser(string UserName)
+        {
+            PrincipalContext domainContext = null;
+            if (Program.IsDomainJoined)
+                domainContext = new PrincipalContext(ContextType.Domain);
+            PrincipalContext machineContext = new PrincipalContext(ContextType.Machine);
+            UserPrincipal user;
+
+            if (domainContext != null)
+            {
+                user = UserPrincipal.FindByIdentity(domainContext, IdentityType.SamAccountName, UserName);
+                if (user != null)
+                {
+                    return user;
+                }
+            }
+            user = UserPrincipal.FindByIdentity(machineContext, IdentityType.SamAccountName, UserName);
+            if (user != null)
+            {
+                return user;
+            }
+            throw new Exception($"User {UserName} was not found");
+        }
+
+
 
         public static List<string> GetUsersWithPrivilege(string Privilege)
         {
-            using( var LSA = new LsaWrapper() )
+            using (var LSA = new LsaWrapper())
             {
                 return LSA.ReadPrivilege(Privilege);
             }
         }
-
-        /*
-        public static void CanNonAdminUserWriteToFile(string FilePath)
-        {
-            bool result = false;
-
-            // Get File Permissions
-            //AuthorizationRuleCollection rules = Utils.GetFilePermissions(FilePath);
-
-            PrincipalContext ctx = new PrincipalContext(ContextType.Machine);
-
-            // Get Local Admin Group
-            SecurityIdentifier builtinAdminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
-            GroupPrincipal group = GroupPrincipal.FindByIdentity(ctx, builtinAdminSid.Value);
-
-            // This doesn't work. No idea why
-            foreach (FileSystemAccessRule rule in rules)
-            {
-                Console.WriteLine(rule.IdentityReference);
-                Console.WriteLine(rule.FileSystemRights);
-                Console.WriteLine(rule.AccessControlType);
-                FileSystemRights FsRights = Utils.FileSystemRightsCorrector(rule.FileSystemRights);
-                Console.WriteLine(FsRights);
-                // Using flags to check whether the rules grants write rights
-                if (0== (FsRights & (FileSystemRights.FullControl | FileSystemRights.Modify)))
-                {
-                    continue;
-                }
-                UserPrincipal user = UserPrincipal.FindByIdentity(ctx, IdentityType.Sid, rule.IdentityReference.Value);
-                if (!user.IsMemberOf(group))
-                {
-                    Console.WriteLine(user.DistinguishedName);
-                }
-            }
-        }
-        */
-
-
 
         [StructLayout(LayoutKind.Sequential)]
         struct LSA_OBJECT_ATTRIBUTES
@@ -590,8 +612,6 @@ namespace Mitigate
             internal static extern int LsaFreeMemory(IntPtr Buffer);
 
         }
-
-
         /// <summary>
         /// Provides a wrapper to the LSA classes
         /// </summary>
@@ -612,8 +632,6 @@ namespace Mitigate
             const uint ERROR_PRIVILEGE_DOES_NOT_EXIST = 3221225568;
             IntPtr lsaHandle;
 
-
-
             /// <summary>
             /// Creates a new LSA wrapper for the local machine
             /// </summary>
@@ -622,7 +640,6 @@ namespace Mitigate
             {
 
             }
-
 
             /// <summary>
             /// Creates a new LSA wrapper for the specified MachineName
@@ -743,5 +760,92 @@ namespace Mitigate
                 return lus;
             }
         }
+        // Where code comes to die:
+        /*
+      public static void CanNonAdminUserWriteToFile(string FilePath)
+      {
+          bool result = false;
+
+          // Get File Permissions
+          //AuthorizationRuleCollection rules = Utils.GetFilePermissions(FilePath);
+
+          PrincipalContext ctx = new PrincipalContext(ContextType.Machine);
+
+          // Get Local Admin Group
+          SecurityIdentifier builtinAdminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+          GroupPrincipal group = GroupPrincipal.FindByIdentity(ctx, builtinAdminSid.Value);
+
+          // This doesn't work. No idea why
+          foreach (FileSystemAccessRule rule in rules)
+          {
+              Console.WriteLine(rule.IdentityReference);
+              Console.WriteLine(rule.FileSystemRights);
+              Console.WriteLine(rule.AccessControlType);
+              FileSystemRights FsRights = Utils.FileSystemRightsCorrector(rule.FileSystemRights);
+              Console.WriteLine(FsRights);
+              // Using flags to check whether the rules grants write rights
+              if (0== (FsRights & (FileSystemRights.FullControl | FileSystemRights.Modify)))
+              {
+                  continue;
+              }
+              UserPrincipal user = UserPrincipal.FindByIdentity(ctx, IdentityType.Sid, rule.IdentityReference.Value);
+              if (!user.IsMemberOf(group))
+              {
+                  Console.WriteLine(user.DistinguishedName);
+              }
+          }
+      }
+      /// <summary>
+        /// Obtains a list of users SID that have previously logged into the device
+        /// </summary>
+        /// <returns>List of user SIDs</returns>
+        public static List<string> GetInterestingSIDs()
+        {
+            HashSet<string> LoggedInSIDs = new HashSet<string>();
+
+            PrincipalContext domainContext = null;
+            if (Program.IsDomainJoined)
+                domainContext = new PrincipalContext(ContextType.Domain);
+            PrincipalContext machineContext = new PrincipalContext(ContextType.Machine);
+            UserPrincipal user;
+
+            // Get users that have logged in
+            SelectQuery query = new SelectQuery("Win32_UserProfile");
+            var searcher = new ManagementObjectSearcher(query);
+
+            //https://stackoverflow.com/questions/18835134/how-to-create-windowsidentity-windowsprincipal-from-username-in-domain-user-form/32165726
+
+            foreach (ManagementObject sid in searcher.Get())
+            {
+                SecurityIdentifier sidObject = new SecurityIdentifier(sid["SID"].ToString());
+                if (!sidObject.IsAccountSid())
+                    continue;
+                // Is domain user?
+                if (domainContext != null)
+                {
+                    user = UserPrincipal.FindByIdentity(domainContext, IdentityType.Sid, sid["SID"].ToString());
+                    if (user != null)
+                    {
+                        LoggedInSIDs.Add(user.Sid.Value);
+                        var userIsMemberOf = user.GetAuthorizationGroups().Where(o => o.Guid != null).Select(o => o.Sid.ToString());
+                        foreach (string groupSid in userIsMemberOf)
+                            LoggedInSIDs.Add(groupSid);
+                    }
+                }
+
+                // Is machine user?
+                user = UserPrincipal.FindByIdentity(machineContext, IdentityType.Sid, sid["SID"].ToString());
+                if (user != null)
+                {
+                    LoggedInSIDs.Add(user.Sid.Value);
+                    var userIsMemberOf = user.GetAuthorizationGroups().Select(o => o.Sid.Value);
+                    foreach (string groupSid in userIsMemberOf)
+                        LoggedInSIDs.Add(groupSid);
+                }
+            }
+            return LoggedInSIDs.ToList();
+        }
+      */
+
     }
 }
