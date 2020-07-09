@@ -15,7 +15,7 @@ namespace Mitigate
         public static string AllMItigationDetected = "#2a9d8f";
         public static string White = "#ffffff";
         public static string NoMitigationsAvailable = "#009ACD";
-        public static string Covered = "#009ACD";
+        public static string Covered = "#9e9ac8";
         public static string Error = "#d62c08";
 
     }
@@ -51,7 +51,7 @@ namespace Mitigate
         public string techniqueID { get; set; }
         public string color { get; set; }
         public bool enabled { get; set; }
-        public double score { get; set; }
+        // public double score { get; set; }
         public IList<Metadata> metadata { get; set; }
         //Constructor for root techniques with subtechniques
         public NTechnique(string rootTechniqueID, List<string> subTechniquesColors)
@@ -84,7 +84,7 @@ namespace Mitigate
             this.metadata = new List<Metadata>();
             foreach (KeyValuePair<string, Mitigation> entry in MitigationInfo)
             {
-                this.metadata.Add(new Metadata("-" + entry.Key, entry.Value.ToString()));
+                this.metadata.Add(new Metadata(entry.Key, entry.Value.ToString()));
             }
         }
         /// <summary>
@@ -215,6 +215,19 @@ namespace Mitigate
                 legendItems.Add(new Legenditem(item.Key, item.Value));
             }
         }
+        public void CreateCoverageLegend()
+        {
+            legendItems.Clear();
+            var items = new Dictionary<string, string>
+            {
+                { "Some mitigation enumeration implemented", ColorPalette.Covered },
+                { "Technique can't be mitigated", ColorPalette.NoMitigationsAvailable }
+            };
+            foreach (var item in items)
+            {
+                legendItems.Add(new Legenditem(item.Key, item.Value));
+            }
+        }
         /// <summary>
         /// Method that creates a JSON file containing the results that can be ingested for the ATT&CK navigator
         /// </summary>
@@ -236,11 +249,14 @@ namespace Mitigate
         {
             this.name = "Coverage";
             this.description = "Coverage of the MITIG&TE project";
+            CreateCoverageLegend();
             foreach (NTechnique technique in this.techniques)
             {
                 technique.metadata.Clear();
-                technique.score = 0;
-                technique.color = ColorPalette.Covered;
+                //technique.score = 0;
+                if (technique.color != ColorPalette.NoMitigationsAvailable && technique.color != ColorPalette.White)
+                    technique.color = ColorPalette.Covered;
+                
             }
             string JSONresult = JsonConvert.SerializeObject(this);
             using (var tw = new StreamWriter(filename))

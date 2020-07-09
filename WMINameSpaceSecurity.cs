@@ -17,7 +17,7 @@ namespace Mitigate
     /// </summary>
     sealed public class ViewNameSpaceSecurity : NameSpaceSecurity
     {
-        protected bool m_bRecursive;
+         bool m_bRecursive;
 
         public ViewNameSpaceSecurity(string name, bool recursive) : base(name)
         {
@@ -126,7 +126,6 @@ namespace Mitigate
             }
             catch (System.Exception vnssex)
             {
-                Console.WriteLine("ConvertSecurityDescriptorToStringSecurityDescriptor API Error: " + iError);
                 throw new Exception("ViewNameSpaceSecurity.ViewSecurity Error: " + vnssex.Message);
             }
             finally

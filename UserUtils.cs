@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.DirectoryServices.AccountManagement;
+using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
@@ -277,36 +278,26 @@ namespace Mitigate
             [DllImport("samlib.dll", CharSet = CharSet.Unicode)]
             private static extern NTSTATUS SamEnumerateDomainsInSamServer(IntPtr ServerHandle, ref int EnumerationContext, out IntPtr EnumerationBuffer, int PreferedMaximumLength, out int CountReturned);
         }
-        public static List<Dictionary<string, string>> GetPasswordPolicy()
+        public static Dictionary<string, bool> CheckPasswordPolicyAgainstCIS()
         {
-            List<Dictionary<string, string>> results = new List<Dictionary<string, string>>();
-            try
+            using (SamServer server = new SamServer(null, SamServer.SERVER_ACCESS_MASK.SAM_SERVER_ENUMERATE_DOMAINS | SamServer.SERVER_ACCESS_MASK.SAM_SERVER_LOOKUP_DOMAIN))
             {
-                using (SamServer server = new SamServer(null, SamServer.SERVER_ACCESS_MASK.SAM_SERVER_ENUMERATE_DOMAINS | SamServer.SERVER_ACCESS_MASK.SAM_SERVER_LOOKUP_DOMAIN))
-                {
-                    foreach (string domain in server.EnumerateDomains())
+                var AllDomains = server.EnumerateDomains();
+                var HostName = Environment.MachineName.ToString();
+                SecurityIdentifier sid;
+                SamServer.DOMAIN_PASSWORD_INFORMATION pi;
+                sid = server.GetDomainSid(HostName);
+                pi = server.GetDomainPasswordInformation(sid);
+                return new Dictionary<string, bool>()
                     {
-                        var sid = server.GetDomainSid(domain);
-                        var pi = server.GetDomainPasswordInformation(sid);
-
-                        results.Add(new Dictionary<string, string>()
-                        {
-                            { "Domain", domain },
-                            { "SID", String.Format("{0}", sid) },
-                            { "MaxPasswordAge", String.Format("{0}", pi.MaxPasswordAge) },
-                            { "MinPasswordAge", String.Format("{0}", pi.MinPasswordAge) },
-                            { "MinPasswordLength", String.Format("{0}", pi.MinPasswordLength) },
-                            { "PasswordHistoryLength", String.Format("{0}", pi.PasswordHistoryLength) },
-                            { "PasswordProperties", String.Format("{0}", pi.PasswordProperties) },
-                        });
-                    }
-                }
+                        { "Max Password Age <= 60", pi.MaxPasswordAge.Days <= 60 & pi.MaxPasswordAge.Days != 0 },
+                        { "Password History Length >= 24", pi.PasswordHistoryLength >=24},
+                        { "Password Complexity Enforced", pi.PasswordProperties.HasFlag(SamServer.PASSWORD_PROPERTIES.DOMAIN_PASSWORD_COMPLEX) },
+                        { "Min Password Age >=1", pi.MinPasswordAge.Days >= 1},
+                        { "Min Password Length >= 14" , pi.MinPasswordLength >=14 },
+                        { "Not Stored in Cleartext", !pi.PasswordProperties.HasFlag(SamServer.PASSWORD_PROPERTIES.DOMAIN_PASSWORD_STORE_CLEARTEXT) }
+                    };
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(String.Format("  [X] Exception: {0}", ex));
-            }
-            return results;
         }
         // https://www.pinvoke.net/default.aspx/netapi32.netusermodalsget
         [DllImport("netapi32.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
@@ -371,7 +362,7 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                PrintUtils.ExceptionPrint(ex.Message);
+                PrintUtils.Debug(ex.StackTrace);
             }
             return results;
         }
@@ -395,7 +386,7 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                PrintUtils.ExceptionPrint(ex.Message);
+                PrintUtils.Debug(ex.StackTrace);
             }
             return results;
         }
@@ -433,7 +424,6 @@ namespace Mitigate
         /// </summary>
         /// <param name="SIDs"></param>
         /// <returns></returns>
-
         public static bool IsAdmin(List<string> SIDs)
         {
             SecurityIdentifier builtinAdminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
@@ -540,7 +530,7 @@ namespace Mitigate
             {
                 return user;
             }
-            throw new Exception($"User {UserName} was not found");
+            throw new Exception($"User '{UserName}' was not found.");
         }
 
 
@@ -553,6 +543,9 @@ namespace Mitigate
             }
         }
 
+        /*-------------------------------------------------------------------------------------------------------*/
+        /* LSA Utils from https://www.centrel-solutions.com/support/tools.aspx?feature=auditrights (No license)  */
+        /*-------------------------------------------------------------------------------------------------------*/
         [StructLayout(LayoutKind.Sequential)]
         struct LSA_OBJECT_ATTRIBUTES
         {
@@ -760,92 +753,5 @@ namespace Mitigate
                 return lus;
             }
         }
-        // Where code comes to die:
-        /*
-      public static void CanNonAdminUserWriteToFile(string FilePath)
-      {
-          bool result = false;
-
-          // Get File Permissions
-          //AuthorizationRuleCollection rules = Utils.GetFilePermissions(FilePath);
-
-          PrincipalContext ctx = new PrincipalContext(ContextType.Machine);
-
-          // Get Local Admin Group
-          SecurityIdentifier builtinAdminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
-          GroupPrincipal group = GroupPrincipal.FindByIdentity(ctx, builtinAdminSid.Value);
-
-          // This doesn't work. No idea why
-          foreach (FileSystemAccessRule rule in rules)
-          {
-              Console.WriteLine(rule.IdentityReference);
-              Console.WriteLine(rule.FileSystemRights);
-              Console.WriteLine(rule.AccessControlType);
-              FileSystemRights FsRights = Utils.FileSystemRightsCorrector(rule.FileSystemRights);
-              Console.WriteLine(FsRights);
-              // Using flags to check whether the rules grants write rights
-              if (0== (FsRights & (FileSystemRights.FullControl | FileSystemRights.Modify)))
-              {
-                  continue;
-              }
-              UserPrincipal user = UserPrincipal.FindByIdentity(ctx, IdentityType.Sid, rule.IdentityReference.Value);
-              if (!user.IsMemberOf(group))
-              {
-                  Console.WriteLine(user.DistinguishedName);
-              }
-          }
-      }
-      /// <summary>
-        /// Obtains a list of users SID that have previously logged into the device
-        /// </summary>
-        /// <returns>List of user SIDs</returns>
-        public static List<string> GetInterestingSIDs()
-        {
-            HashSet<string> LoggedInSIDs = new HashSet<string>();
-
-            PrincipalContext domainContext = null;
-            if (Program.IsDomainJoined)
-                domainContext = new PrincipalContext(ContextType.Domain);
-            PrincipalContext machineContext = new PrincipalContext(ContextType.Machine);
-            UserPrincipal user;
-
-            // Get users that have logged in
-            SelectQuery query = new SelectQuery("Win32_UserProfile");
-            var searcher = new ManagementObjectSearcher(query);
-
-            //https://stackoverflow.com/questions/18835134/how-to-create-windowsidentity-windowsprincipal-from-username-in-domain-user-form/32165726
-
-            foreach (ManagementObject sid in searcher.Get())
-            {
-                SecurityIdentifier sidObject = new SecurityIdentifier(sid["SID"].ToString());
-                if (!sidObject.IsAccountSid())
-                    continue;
-                // Is domain user?
-                if (domainContext != null)
-                {
-                    user = UserPrincipal.FindByIdentity(domainContext, IdentityType.Sid, sid["SID"].ToString());
-                    if (user != null)
-                    {
-                        LoggedInSIDs.Add(user.Sid.Value);
-                        var userIsMemberOf = user.GetAuthorizationGroups().Where(o => o.Guid != null).Select(o => o.Sid.ToString());
-                        foreach (string groupSid in userIsMemberOf)
-                            LoggedInSIDs.Add(groupSid);
-                    }
-                }
-
-                // Is machine user?
-                user = UserPrincipal.FindByIdentity(machineContext, IdentityType.Sid, sid["SID"].ToString());
-                if (user != null)
-                {
-                    LoggedInSIDs.Add(user.Sid.Value);
-                    var userIsMemberOf = user.GetAuthorizationGroups().Select(o => o.Sid.Value);
-                    foreach (string groupSid in userIsMemberOf)
-                        LoggedInSIDs.Add(groupSid);
-                }
-            }
-            return LoggedInSIDs.ToList();
-        }
-      */
-
     }
 }

@@ -18,7 +18,8 @@ namespace Mitigate
             {"chm", new TestFile {
                 Url=@"https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/atomics/T1218.001/src/T1218.001.chm",
                 Hash="bf78b5f5223e2ab13c919bbcb023a18a362661701e2433abd29a3d8fde503735"
-            } }
+                } 
+            }
         };
 
         private static string ComputeSha256Hash(byte[] rawData)

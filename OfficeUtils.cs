@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 
@@ -18,22 +21,31 @@ namespace Mitigate
                 if (OfficeSubKeys.Contains(version))
                     return version;
             }
-            throw new OfficeUtils.OfficeNotInstallException("Office is not installed");
+            throw new OfficeUtils.OfficeNotInstalledException("Office is not installed");
         }
 
-        public static bool CheckTestRegKey()
+        public static Dictionary<string, bool> CheckTestRegKey()
         {
+            Dictionary<string, bool> info = new Dictionary<string, bool>();
             string version = GetOfficeVersion();
-            string RegPath = @"Create Software\Microsoft\Office test\Special\Perf key and harden its permissions";
+            string RegPath = @"Software\Microsoft\Office test\Special\Perf";
             if (!Utils.RegExists("HKCU", RegPath, "Default"))
             {
-                return false;
+                info["HKCU hive"] = false;
             }
             else
             {
-                var HavePermissionsToAlter = Utils.RegWritePermissions("HKCU", RegPath, Program.SIDsToCheck);
-                return HavePermissionsToAlter;
+                info["HKCU hive"] = Utils.RegWritePermissions("HKCU", RegPath, Program.SIDsToCheck);
             }
+            if (!Utils.RegExists("HKLM", RegPath, "Default"))
+            {
+                info["HKLM hive"] = false;
+            }
+            else
+            {
+                info["HKLM hive"] = Utils.RegWritePermissions("HKLM", RegPath, Program.SIDsToCheck);
+            }
+            return info;
         }
         public static bool IsVBADisabled()
         {
@@ -115,7 +127,7 @@ namespace Mitigate
             string version = GetOfficeVersion();
             if (version != "16.0")
             {
-                throw new OfficeNotInstallException("Unsupported office version");
+                throw new OfficeNotInstalledException("Unsupported office version");
             }
 
             // Pulling all the setting from the registry
@@ -145,6 +157,140 @@ namespace Mitigate
             ProtectedViewInfo["PPT outlook attachment in PV"] = (Utils.GetRegValue("HKLM", pathPowerPoint, "disableattachmentsinpv") != "1");
             return ProtectedViewInfo;
         }
+        public static Version GetOutlookVersion()
+        {
+            var RegPath = @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\OUTLOOK.EXE";
+            var OutlookPath = Utils.GetRegValue("HKLM", RegPath, "");
+            if (String.IsNullOrEmpty(OutlookPath))
+            {
+                RegPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\OUTLOOK.EXE";
+                OutlookPath = Utils.GetRegValue("HKLM", RegPath, "");
+            }
+            if (!string.IsNullOrEmpty(OutlookPath) && File.Exists(OutlookPath))
+            {
+                var OutLookVersion = FileVersionInfo.GetVersionInfo(OutlookPath).ProductVersion;
+                return new Version(OutLookVersion.Replace(",", "."));
+            }
+            throw new Exception("GetOutlookVersion: Outlook version could not be obtained");
+        }
+        public static bool CheckForKB3191938()
+        {
+            string version = GetOfficeVersion();
+            if (version != "15.0" && version != "16.0")
+            {
+                throw new OfficeNotInstalledException("Unsupported office version");
+            }
+            /*
+            Outlook 2016: 16.0.4534.1001 or greater.
+            Outlook 2013: 15.0.4937.1000 or greater.
+            */
+            var OutlookVersion = GetOutlookVersion();
+            Version RequiredVersion;
+            if (version == "15.0")
+            {
+                RequiredVersion = new Version("15.0.4937.1000");
+            } 
+            else if (version == "16.0")
+            {
+                RequiredVersion = new Version("16.0.4534.1001");
+            }
+            else
+            {
+                throw new Exception("CheckForKB3191938: Unknown Version");
+            }
+
+            if (OutlookVersion < RequiredVersion)
+            {
+                return false;
+            }
+            else
+            {
+                var RegPath = String.Format(@"Software\Microsoft\Office\{0}\Outlook\Security", version);
+                return Utils.GetRegValue("HKCU", RegPath, "EnableUnsafeClientMailRules") != "1";
+            }
+        }
+        public static bool CheckForKB4011091()
+        {
+            //https://support.microsoft.com/en-us/office/custom-form-script-is-now-disabled-by-default-bd8ea308-733f-4728-bfcc-d7cce0120e94//
+            string version = GetOfficeVersion();
+            if (version !="14.0" && version != "15.0" && version != "16.0")
+            {
+                throw new OfficeNotInstalledException("Unsupported office version");
+            }
+            /*
+            Outlook 2016: 16.0.4588.1001 or greater.
+            Outlook 2013: 15.0.4963.1000 or greater.
+            Outlook 2010: 14.0.7188.5000 or greater.
+            */
+            var OutlookVersion = GetOutlookVersion();
+            Version RequiredVersion;
+            switch (version)
+            {
+                case "14.0":
+                    RequiredVersion = new Version("14.0.7188.5000");
+                    break;
+                case "15.0":
+                    RequiredVersion = new Version("15.0.4963.1000");
+                    break;
+                case "16.0":
+                    RequiredVersion = new Version("16.0.4588.1001");
+                    break;
+                default:
+                    throw new Exception("CheckForKB4011091: Unknown Version");
+            }
+            if (OutlookVersion < RequiredVersion)
+            {
+                return false;
+            }
+            else
+            {
+                // 32 bit Office on 64 bit Windows
+                var RegPath = String.Format(@"SOFTWARE\Microsoft\Office\{0}\Outlook\Security", version);
+                var case1 =  Utils.GetRegValue("HKLM", RegPath, "DisableCustomFormItemScript") != "0";
+                //32 bit Office on 32 bit Windows or 64 bit Office on 64 bit Windows
+                RegPath = String.Format(@"SOFTWARE\WOW6432Node\Microsoft\Office\{0}\Outlook\Security", version);
+                var case2 = Utils.GetRegValue("HKLM", RegPath, "DisableCustomFormItemScript") != "0";
+                return case1 && case2;
+            }
+        }
+        public static bool CheckForKB4011162()
+        {
+            //https://www.fireeye.com/blog/threat-research/2019/12/breaking-the-rules-tough-outlook-for-home-page-attacks.html
+            //https://support.microsoft.com/en-us/help/4011162/description-of-the-security-update-for-outlook-2016-october-10-2017
+            string version = GetOfficeVersion();
+            if (version != "14.0" && version != "15.0" && version != "16.0")
+            {
+                throw new OfficeNotInstalledException("Unsupported office version");
+            }
+            Version RequiredVersion;
+
+            switch (version)
+            {
+                case "14.0":
+                    RequiredVersion = new Version("14.0.7189.5000");
+                    break;
+                case "15.0":
+                    RequiredVersion = new Version("15.0.4971.1000");
+                    break;
+                case "16.0":
+                    RequiredVersion = new Version("16.0.4600.1000");
+                    break;
+                default:
+                    throw new Exception("CheckForKB4011091: Unknown Version");
+            }
+            var OutlookVersion = GetOutlookVersion();
+            if (OutlookVersion < RequiredVersion)
+            {
+                return false;
+            }
+            else
+            {
+                var RegPath = String.Format(@"SOFTWARE\Microsoft\Office\{0}\Outlook\Security", version);
+                var case1 = Utils.GetRegValue("HKCU", RegPath, "EnableRoamingFolderHomepages") != "1";
+                var case2 = Utils.GetRegValue("HKCU", RegPath, "NonDefaultStoreScript") != "1";
+                return case1 && case2;
+            }
+        }
         public static Dictionary<string, bool> GetAutomaticDDEExecutionConf()
         {
             Dictionary<string, bool> AutomaticDDEExecutionConf = new Dictionary<string, bool>();
@@ -152,7 +298,7 @@ namespace Mitigate
             string version = GetOfficeVersion();
             if (version != "14.0" && version != "15.0" && version != "16.0")
             {
-                throw new OfficeNotInstallException("Unsupported office version");
+                throw new OfficeNotInstalledException("Unsupported office version");
             }
 
             //https://gist.github.com/wdormann/732bb88d9b5dd5a66c9f1e1498f31a1b
@@ -176,7 +322,7 @@ namespace Mitigate
             string version = GetOfficeVersion();
             if (version != "16.0" && version != "15.0")
             {
-                throw new OfficeNotInstallException();
+                throw new OfficeNotInstalledException();
             }
             //https://gist.github.com/wdormann/732bb88d9b5dd5a66c9f1e1498f31a1b
             var path = String.Format(@"Software\Microsoft\Office\{0}\OneNote\Options", version.First());
@@ -185,21 +331,21 @@ namespace Mitigate
         }
 
         [Serializable]
-        internal class OfficeNotInstallException : Exception
+        internal class OfficeNotInstalledException : Exception
         {
-            public OfficeNotInstallException()
+            public OfficeNotInstalledException()
             {
             }
 
-            public OfficeNotInstallException(string message) : base(message)
+            public OfficeNotInstalledException(string message) : base(message)
             {
             }
 
-            public OfficeNotInstallException(string message, Exception innerException) : base(message, innerException)
+            public OfficeNotInstalledException(string message, Exception innerException) : base(message, innerException)
             {
             }
 
-            protected OfficeNotInstallException(SerializationInfo info, StreamingContext context) : base(info, context)
+            protected OfficeNotInstalledException(SerializationInfo info, StreamingContext context) : base(info, context)
             {
             }
         }

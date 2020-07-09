@@ -176,13 +176,13 @@ Machine Interrogation To Identify Gaps & Techniques for Execution");
             }
         }
 
-        public static void PrintWarning(string warning)
+        public static void Warning(string warning)
         {
             Console.Write("-> ");
             Console.WriteLine(warning);
         }
 
-        public static void PrintError(string error)
+        public static void Error(string error)
         {
             Console.Write("-> ");
             Console.WriteLine(error);
@@ -224,7 +224,7 @@ Machine Interrogation To Identify Gaps & Techniques for Execution");
             Console.WriteLine();
         }
 
-        public static void ErrorPrint(string error)
+        public static void TestError(string error)
         {
             Console.Write("".PadRight(14));
             Console.Write("[");
@@ -238,12 +238,12 @@ Machine Interrogation To Identify Gaps & Techniques for Execution");
             Console.ResetColor();
         }
 
-        public static void ExceptionPrint(string message)
+        public static void Debug(string message)
         {
-            if (Program.Arguments.Verbose == true)
+            if (Program.Arguments.Debug == true)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                var value = String.Format("      [X] Exception: {0}", message);
+                var value = String.Format("      [!] {0}", message);
                 var PadWidth = Math.Max(Console.WindowWidth - 2, 1);
                 Console.WriteLine(value.PadRight(PadWidth));
                 Console.ResetColor();
@@ -359,6 +359,18 @@ Machine Interrogation To Identify Gaps & Techniques for Execution");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.WriteLine("NotAutomated");
                 Console.ResetColor();
+            }
+        }
+        public static void PrintDACL(List<Utils.ACE> DACL)
+        {
+            foreach (var ace in DACL)
+            {
+                var sid = new System.Security.Principal.SecurityIdentifier(ace.Trustee);
+                Console.WriteLine($"Trustee: {Utils.SidToAccountName(sid)}");
+                Console.WriteLine($"Access Right: {ace.AccessType}");
+                Console.WriteLine($"Audit Rights: {ace.AuditRights}");
+                Console.WriteLine("Permissions: " + String.Join("|", ace.Permissions));
+                Console.WriteLine();
             }
         }
 

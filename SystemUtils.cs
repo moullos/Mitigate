@@ -70,8 +70,11 @@ namespace Mitigate
 
             return results;
         }
-
-        public static Dictionary<string, bool> GetDefaultComPermissions()
+        /// <summary>
+        /// Checks if the default COM permissions are equal to the Microsoft default permissions
+        /// </summary>
+        /// <returns>Dictionary with bools for Launch and Access Permissions</returns>
+        public static Dictionary<string, bool> DefaultComPermissions()
         {
             Dictionary<string, bool> DefaultComPermission = new Dictionary<string, bool>();
             DefaultComPermission["Default Launch Permissions"] = true;
@@ -81,69 +84,78 @@ namespace Mitigate
             if (Utils.RegExists("HKLM", @"SOFTWARE\Microsoft\Ole", "DefaultLaunchPermission"))
             {
                 var RawLaunchPermission = Utils.GetRegValueBytes("HKLM", @"SOFTWARE\Microsoft\Ole", "DefaultLaunchPermission");
-                var LaunchACEs = Utils.PermissionsDecoder.DecodeRawACE<Utils.COMPermissionsMask>(RawLaunchPermission);
-                // System defaults are SYSTEM, INTERACTIVE and Administrators get full access
-                string[] SIDs = { "S-1-5-18", "S-1-5-4", "S-1-5-32-544" };
-                foreach (var SID in SIDs)
-                {
-                    var SidPermissions = LaunchACEs.Where(o => o.Trustee == SID && o.AccessType == "AccessAllowed")
-                                                    .Select(o => o.Permissions).FirstOrDefault();
-                    if (SidPermissions == null || !COMFullAccess(SidPermissions))
-                    {
-                        DefaultComPermission["Default Launch Permissions"] = false;
-                    }
-                }
+                DefaultComPermission["Default Launch Permissions"] = Utils.EqualsDefaultLaunchPermissions(RawLaunchPermission);
             }
             if (Utils.RegExists("HKLM", @"SOFTWARE\Microsoft\Ole", "DefaultAccessPermission"))
             {
-                var RawLaunchPermission = Utils.GetRegValueBytes("HKLM", @"SOFTWARE\Microsoft\Ole", "DefaultAccessPermission");
-                var LaunchACEs = Utils.PermissionsDecoder.DecodeRawACE<Utils.COMPermissionsMask>(RawLaunchPermission);
-                // System defaults are SYSTEM, SELF and Administrators get full access
-                string[] SIDs = { "S-1-5-18", "S-1-5-10", "S-1-5-32-544" };
-                foreach (var SID in SIDs)
-                {
-                    var SidPermissions = LaunchACEs.Where(o => o.Trustee == SID && o.AccessType == "AccessAllowed")
-                                                    .Select(o => o.Permissions).FirstOrDefault();
-                    if (SidPermissions == null || !COMFullAccess(SidPermissions))
-                    {
-                        DefaultComPermission["Default Access Permissions"] = false;
-                    }
-                }
+                var RawAccessPermission = Utils.GetRegValueBytes("HKLM", @"SOFTWARE\Microsoft\Ole", "DefaultAccessPermission");
+                DefaultComPermission["Default Access Permissions"] = Utils.EqualsDefaultAccessPermissions(RawAccessPermission);
             }
             return DefaultComPermission;
         }
-        static bool COMFullAccess(List<string> Permissions)
+
+        public static Dictionary<string, Mitigation> CheckForOverridenComPermissions(bool FullChecks)
         {
-            if (Permissions.Contains("COM_RIGHTS_EXECUTE") &&
-           Permissions.Contains("COM_RIGHTS_EXECUTE_LOCAL") &&
-           Permissions.Contains("COM_RIGHTS_EXECUTE_REMOTE") &&
-           Permissions.Contains("COM_RIGHTS_ACTIVATE_LOCAL") &&
-           Permissions.Contains("COM_RIGHTS_ACTIVATE_REMOTE")
-           )
-                return true;
-            else
-                return false;
-        }
-        public static Dictionary<string, bool> CheckAllComAccessPermissions()
-        {
-            Dictionary<string, bool> AppComPermission = new Dictionary<string, bool>();
+            // If Full checks is defined, then the individual app permissions are parse and are checked for loose permissions
+            Dictionary<string, Mitigation> AppDefaultComPermissionsOverriden = new Dictionary<string, Mitigation>();
             var AllAppGUIDs = Utils.GetRegSubkeys("HKLM", @"SOFTWARE\Classes\AppID\").Where(o => o.StartsWith("{"));
             foreach (var AppGUID in AllAppGUIDs)
             {
                 var RegPath = String.Format(@"SOFTWARE\Classes\AppID\{0}", AppGUID);
                 // Check for app Access Permission
-                if (Utils.RegExists("HKLM", RegPath, "AccessPermission") ||
-                    Utils.RegExists("HKLM", RegPath, "LaunchPermission"))
+                var DictKey = $"{AppGUID} - Default Access Permissions";
+                if (Utils.RegExists("HKLM", RegPath, "AccessPermission"))
                 {
-                    // Default permissions are ignored for the specific ones
-                    AppComPermission[AppGUID] = false;
+                    try
+                    {
+                        if (FullChecks)
+                        {
+                            var RawAccessPermission = Utils.GetRegValueBytes("HKLM", RegPath, "AccessPermission");
+                            var DefaultPermisssions = Utils.EqualsDefaultAccessPermissions(RawAccessPermission);
+                            AppDefaultComPermissionsOverriden[DictKey] = DefaultPermisssions ? Mitigation.True : Mitigation.False;
+                        }
+                        else
+                        {
+                            AppDefaultComPermissionsOverriden[DictKey] = Mitigation.False;
+                        }
+                    }
+                    catch
+                    {
+                        AppDefaultComPermissionsOverriden[DictKey] = Mitigation.TestFailed;
+                    }
                 }
                 else
                 {
-                    AppComPermission[AppGUID] = true;
+                    AppDefaultComPermissionsOverriden[DictKey] = Mitigation.True;
+                }
+                // Check for app launch Permission
+                DictKey = $"{AppGUID} - Default Launch Permissions";
+                if (Utils.RegExists("HKLM", RegPath, "LaunchPermission"))
+                {
+                    try
+                    {
+                        if (FullChecks)
+                        {
+                            var RawAccessPermission = Utils.GetRegValueBytes("HKLM", RegPath, "LaunchPermission");
+                            var DefaultPermisssions = Utils.EqualsDefaultAccessPermissions(RawAccessPermission);
+                            AppDefaultComPermissionsOverriden[DictKey] = DefaultPermisssions ? Mitigation.True : Mitigation.False;
+                        }
+                        else
+                        {
+                            AppDefaultComPermissionsOverriden[DictKey] = Mitigation.False;
+                        }
+                    }
+                    catch
+                    {
+                        AppDefaultComPermissionsOverriden[DictKey] = Mitigation.TestFailed;
+                    }
+                }
+                else
+                {
+                    AppDefaultComPermissionsOverriden[DictKey] = Mitigation.True;
                 }
             }
-            return AppComPermission;
+            return AppDefaultComPermissionsOverriden;
         }
 
         // From WinPEAS: https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/blob/master/winPEAS/winPEASexe/winPEAS/SystemInfo.cs
@@ -195,19 +207,24 @@ namespace Mitigate
             return "Unrestricted";
         }
 
+        public static bool IsAppLockerRunning()
+        {
+            return Utils.IsServiceRunning("AppIDSvc");
+        }
+
         public static bool IsAppLockerEnabled(string type)
         {
             Dictionary<string, string> ValidRuleTypes = new Dictionary<string, string>()
             {
                 {"Executable Rules", "Exe" },
-                {"Windows Installer Rules", "Msi" },
+                {"Windows Installer Rules", "Msi"},
                 {"Script Rules", "Script" },
                 {"Packaged App Rules", "Appx"},
                 {"DLL", "Dll" }
             };
             if (!ValidRuleTypes.ContainsKey(type))
             {
-                throw new Exception("Unknown AppLocker Rule Type");
+                throw new Exception("IsAppLockerEnabled: Unknown AppLocker Rule Type");
             }
             var RegPath = String.Format(@"Software\Policies\Microsoft\Windows\SrpV2\{0}", ValidRuleTypes[type]);
             if (Utils.RegExists("HKLM", RegPath))
@@ -330,7 +347,7 @@ namespace Mitigate
                 }
                 catch (Exception ex)
                 {
-                    PrintUtils.ExceptionPrint(ex.Message);
+                    PrintUtils.Debug(ex.StackTrace);
                 }
             }
             if (regKeys["MaxDownloadTime"] == null)
@@ -347,7 +364,7 @@ namespace Mitigate
                 }
                 catch (Exception ex)
                 {
-                    PrintUtils.ExceptionPrint(ex.Message);
+                    PrintUtils.Debug(ex.StackTrace);
                 }
             }
             return info;
@@ -385,13 +402,13 @@ namespace Mitigate
             }
             return RegValue == "1" ? true : false;
         }
-        public static Dictionary<string, bool> GetWinlogonRegPermissions()
+        public static Dictionary<string, bool> CanSIDsWriteWinlogonRegistries(List<string> SIDsToCheck)
         {
             // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order?redirectedfrom=MSDN
             Dictionary<string, bool> regPermResults = new Dictionary<string, bool>();
             var regPath = @"Software\Microsoft\Windows NT\CurrentVersion\Winlogon";
-            regPermResults[$"HKCU\\{regPath}"] = Utils.RegWritePermissions("HKCU", regPath, Program.SIDsToCheck);
-            regPermResults[$"HKLM\\{regPath}"] = Utils.RegWritePermissions("HKLM", regPath, Program.SIDsToCheck);
+            regPermResults[$"HKCU\\{regPath}"] = !Utils.RegWritePermissions("HKCU", regPath, SIDsToCheck);
+            regPermResults[$"HKLM\\{regPath}"] = !Utils.RegWritePermissions("HKLM", regPath, SIDsToCheck);
 
             return regPermResults;
         }
@@ -448,7 +465,7 @@ namespace Mitigate
         {
             return Utils.GetRegValue(
                 "HKLM",
-                @"\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp",
+                @"SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp",
                 "UserAuthentication")
                 == "1";
         }
@@ -461,7 +478,7 @@ namespace Mitigate
         {
             return Utils.GetRegValue(
                 "HKLM",
-                @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecureBoot\State",
+                @"SYSTEM\CurrentControlSet\Control\SecureBoot\State",
                 "UEFISecureBootEnabled")
                 == "1";
         }
@@ -671,9 +688,9 @@ namespace Mitigate
 
             return Utils.GetRegValue("HKLM", RegPath, RegKey) == "1" ? true : false;
         }
-        public static Dictionary<string, bool> GetASRRulesStatus(List<string> RuleGUIDs)
-        {
 
+        public static Dictionary<string, bool> GetASRRulesStatus(List<string> RuleGUIDs=null)
+        {
             // Well-known ASR rules
             Dictionary<string, string> Guid2Description = new Dictionary<string, string>()
             {
@@ -693,7 +710,10 @@ namespace Mitigate
                 {"7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c","Block adobe reader from creating child processes"},
                 {"e6db77e5-3df2-4cf1-b95a-636979351e5b","Block persistence through WMI event subscription"}
             };
-
+            if (RuleGUIDs == null)
+            {
+                RuleGUIDs = Guid2Description.Keys.ToList();
+            }
             Dictionary<string, bool> ASRRulesStatus = new Dictionary<string, bool>();
             string RegPath = @"SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules";
             foreach (string ruleGUID in RuleGUIDs)

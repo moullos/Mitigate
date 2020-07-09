@@ -6,15 +6,11 @@ using System.Text.RegularExpressions;
 
 namespace Mitigate
 {
-    /*
-     * TODO LIST:
-     * - Make print error part of mitigation result
-     */
     class Program
     {
    
         // Some static values and global vars
-        public static string AttackUrl = @"https://raw.githubusercontent.com/mitre/cti/subtechniques/enterprise-attack/enterprise-attack.json";
+        public static string AttackUrl = @"https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json";
         public static List<string> SIDsToCheck;
         public static bool IsDomainJoined;
         public static string version = "WIP";
@@ -23,14 +19,11 @@ namespace Mitigate
 
         public static void Main(string[] args)
         {
-
-
             /////////////////////
             /// Initial setup ///
             /////////////////////
             PrintUtils.DisableConsoleQuickEdit();
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-
             // Arg Parsing
             try
             {
@@ -38,11 +31,10 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                PrintUtils.PrintError(ex.Message);
+                PrintUtils.Error(ex.Message);
                 MitigateArgumentParser.PrintUsage();
                 Environment.Exit(1);
             }
-
 
             PrintUtils.PrintBanner();
             PrintUtils.PrintInit(version);
@@ -52,16 +44,24 @@ namespace Mitigate
             // Check if it's running as admin
             if (!UserUtils.IsItRunningAsAdmin())
             {
-                PrintUtils.PrintWarning("Mitigate is not running as an administrator." +
+                PrintUtils.Warning("Mitigate is not running as an administrator." +
                     " This might restrict its ability to perform the necessary checks");
             }
-
+            AttackCTI ATTCK = null;
+            Navigator navigator = null;
             // Pulling ATT&CK json from GitHub
-            AttackCTI ATTCK = new AttackCTI(AttackUrl);
-            Navigator navigator = new Navigator();
-
+            try
+            {
+                ATTCK = new AttackCTI(AttackUrl);
+                navigator = new Navigator();
+            }
+            catch (Exception ex)
+            {
+                PrintUtils.Error(ex.Message);
+                Environment.Exit(1);
+            }
             // Getting some user info and deciding the user for least priv checks
-            PrintUtils.PrintWarning("Collecting some machine information. This might take some time...");
+            PrintUtils.Warning("Collecting some machine information. This might take some time...");
             if (!string.IsNullOrEmpty(Arguments.Username))
             {
                 try
@@ -71,7 +71,7 @@ namespace Mitigate
                 }
                 catch (Exception ex)
                 {
-                    PrintUtils.ErrorPrint(ex.Message);
+                    PrintUtils.Error(ex.Message);
                     Environment.Exit(1);
                 }
             }
@@ -84,15 +84,15 @@ namespace Mitigate
                 }
                 catch (Exception ex)
                 {
-                    PrintUtils.ErrorPrint(ex.Message);
+                    PrintUtils.Error(ex.Message);
                     Environment.Exit(1);
                 }
             }
-            PrintUtils.PrintWarning($"Least privilege checks will be performed for user {UserToCheck.SamAccountName}");
+            PrintUtils.Warning($"Least privilege checks will be performed for user {UserToCheck.SamAccountName}");
             /////////////////
             /// Main Loop ///
             /////////////////
-            
+
             // Keeping track on tested techniques to stop from testing twice
             HashSet<string> TestedTechniques = new HashSet<string>();
             

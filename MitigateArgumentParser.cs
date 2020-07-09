@@ -15,6 +15,7 @@ namespace Mitigate
         public bool ExportCoverage { get; private set; }
         public bool Verbose { get; private set; }
         public bool Full { get; private set; }
+        public bool Debug { get; private set; }
         public string OutFile { get; private set; }
         public string Username { get; private set; }
 
@@ -34,6 +35,7 @@ namespace Mitigate
             Verbose = ParseAndRemoveSwitchArgument("-Verbose", false);
             Username = ParseAndRemoveKeyValueArgument("-Username");
             Full = ParseAndRemoveSwitchArgument("-Full", false);
+            Full = ParseAndRemoveSwitchArgument("-Debug", false);
         }
 
         private bool ParseAndRemoveSwitchArgument(string key, bool defaultValue)
@@ -73,10 +75,11 @@ namespace Mitigate
         {
 
             Console.WriteLine("Usage: Mitigate.exe");
-            Console.WriteLine("       -OutFile=FileName : The file name of the resulting navigator layer file. Can be imported into the ATT&CK Navigator for visualisation");
+            Console.WriteLine("       -OutFile=<FileName> : The file name of the resulting navigator layer file. Can be imported into the ATT&CK Navigator for visualisation");
+            Console.WriteLine("       -UserName=<username> : A user to perform all the least privilege checks for. Default is the last logged in user");
             Console.WriteLine("       -Verbose : Increases the verbosity of the output for some of the enumerations");
             Console.WriteLine("       -ExportCoverage : Outputs a navigator layer file just capturing the technique coverage of the implemented enumerations");
-            Console.WriteLine("       -UserName=username : A user to perform all the least privilege checks for. Default is the last logged in user");
+            Console.WriteLine("       -Full : Performs more detailed COM and WMI permissions enumerations");
         }
     }
 }

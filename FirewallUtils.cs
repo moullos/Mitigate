@@ -30,7 +30,7 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                PrintUtils.ErrorPrint(ex.Message);
+                PrintUtils.TestError(ex.Message);
             }
             return result;
         }

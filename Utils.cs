@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using Newtonsoft.Json.Schema;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,12 +11,13 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.ServiceProcess;
 
 namespace Mitigate
 {
     class Utils
     {
-        private static Tuple<string, string, int> RunCmd(string cmd)
+        public static Tuple<string, string, int> RunCmd(string cmd)
         {
             Process process = new Process();
             process.StartInfo.FileName = "cmd.exe";
@@ -29,53 +31,94 @@ namespace Mitigate
             process.WaitForExit();
             return new Tuple<string, string, int>(output, err, process.ExitCode);
         }
-
-        public static bool CommandFileExists(string cmd)
+        private static Tuple<string, string, int> RunCmd(string cmd, string UserName)
         {
-            string output;
-            string err;
-            int exitCode;
-            var result = RunCmd("where.exe " + cmd);
-            output = result.Item1;
-            err = result.Item2;
-            exitCode = result.Item3;
-            if (exitCode != 0)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+            // Maybe try to run a command to see what happends instead of enumerating for restricting policies
+            Process process = new Process();
+            process.StartInfo.FileName = "cmd.exe";
+            process.StartInfo.UserName = UserName;
+            process.StartInfo.Arguments = "/c " + cmd;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.Start();
+            string output = process.StandardOutput.ReadToEnd();
+            string err = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            return new Tuple<string, string, int>(output, err, process.ExitCode);
         }
 
-
-
-        public static bool CommandFileAccessible(string cmd)
+        public static Tuple<string, string, int> Base64EncodedCommand(string psCommand)
         {
-            string output;
-            string err;
-            int exitCode;
-            var result = RunCmd(cmd);
-            output = result.Item1;
-            err = result.Item2;
-            exitCode = result.Item3;
-            if (output.Contains("is not recognized as an internal or external command"))
+;
+            var psCommandBytes = System.Text.Encoding.Unicode.GetBytes(psCommand);
+            var psCommandBase64 = Convert.ToBase64String(psCommandBytes);
+
+            var process = new Process();
+            process.StartInfo.FileName = "powershell.exe";
+            process.StartInfo.Arguments = $"-NoProfile -ExecutionPolicy unrestricted -EncodedCommand {psCommandBase64}";
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.Start();
+            //* Read the output (or the error)
+            string output = process.StandardOutput.ReadToEnd();
+            string err = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            return new Tuple<string, string, int>(output, err, process.ExitCode);
+        }
+        public static bool CheckForRestrictions(string ExecPath, string UserName)
+        {
+            if (String.IsNullOrEmpty(ExecPath)) throw new ArgumentNullException();
+            if (String.IsNullOrEmpty(UserName)) throw new ArgumentNullException();
+            
+            if (!File.Exists(ExecPath))
             {
+                PrintUtils.Debug($"File '{ExecPath}' was not found");
                 return true;
             }
-            else
+            // Check 1: AppLocker
+            if (SystemUtils.IsAppLockerEnabled())
             {
-                return false;
+                if (!SystemUtils.IsAppLockerRunning())
+                {
+                    throw new Exception("AppLocker SVC is not running");
+                }
+                if (CheckApplockerPolicyforDenied(ExecPath, UserName))
+                {
+                    return true;
+                }
             }
+            // Check 2: SRP
+            // TODO
+
+            // Check 3: WDAG
+            // TODO 
+
+            return false;
+        }
+
+        public static bool CheckApplockerPolicyforDenied(string ExecPath, string UserName)
+        {
+            // Obviously not secure
+            string CommandMask = @"Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path '{0}' -User '{1}' -Filter Denied,DeniedByDefault";
+            string Command = String.Format(CommandMask, ExecPath, UserName);
+            var CommandResult = Base64EncodedCommand(Command);
+            var output = CommandResult.Item1;
+            var err = CommandResult.Item2;
+            var ExitCode = CommandResult.Item3;
+            if (ExitCode != 0)
+            {
+                throw new Exception($"CheckApplockerPolicyforDenied: Path={ExecPath} Username={UserName}");
+            }
+            return !string.IsNullOrEmpty(output);
         }
 
         // All credit for the Registry Utils goes to winPeas
         ///////////////////////////////////////////
         /// Interf. for Keys and Values in Reg. ///
         ///////////////////////////////////////////
-        /// Functions related to obtain keys and values from the registry
-        /// Some parts adapted from Seatbelt
         public static string GetRegValue(string hive, string path, string value)
         {
             // returns a single registry value under the specified path in the specified hive (HKLM/HKCU)
@@ -210,9 +253,9 @@ namespace Mitigate
                 String[] subkeyNames = myKey.GetSubKeyNames();
                 return myKey.GetSubKeyNames();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                PrintUtils.ExceptionPrint(String.Format(@"Registry {0}\{1} was not found", hive, path));
+                PrintUtils.Debug(String.Format(@"Registry {0}\{1} was not found", hive, path));
                 return new string[0];
             }
         }
@@ -235,7 +278,7 @@ namespace Mitigate
                 return false;
             return true;
         }
-
+        // Not a winpeas method
         public static bool RegExists(string hive, string path, string value)
         {
             Microsoft.Win32.RegistryKey myKey = null;
@@ -268,6 +311,7 @@ namespace Mitigate
         /// <returns>Boolean</returns>
         public static bool RegWritePermissions(string hive, string path, List<string> SIDs)
         {
+            // TODO: TEST THIS
             Dictionary<string, bool> results = new Dictionary<string, bool>();
             Microsoft.Win32.RegistryKey myKey = null;
             if (hive == "HKLM")
@@ -379,7 +423,7 @@ namespace Mitigate
             }
             catch (Exception ex)
             {
-                PrintUtils.ErrorPrint("Error in PermInt2Str: " + ex);
+                PrintUtils.TestError("Error in PermInt2Str: " + ex);
             }
             return "";
         }
@@ -411,6 +455,19 @@ namespace Mitigate
             }
             return Groups;
         }
+        public static string SidToAccountName(SecurityIdentifier sid)
+        {
+            try
+            {
+                return (sid.IsValidTargetType(typeof(NTAccount)))
+                     ? ((NTAccount)sid.Translate(typeof(NTAccount))).Value
+                     : sid.Value;
+            }
+            catch
+            {
+                return sid.Value;
+            }
+        }
 
         public static Dictionary<string, string> GetServiceConfig(string ServiceName)
         {
@@ -418,16 +475,23 @@ namespace Mitigate
             // Unfortunately the ServiceController class does not provide the startUpType on this version of .NET
             // So we pull it directly from the register
 
-            var RegPath = @"SYSTEM\CurrentControlSet\Services\WinRM";
+            var RegPath = $@"SYSTEM\CurrentControlSet\Services\{ServiceName}";
             var RegName = @"Start";
 
             string StartUpTypeValue = Utils.GetRegValue("HKLM", RegPath, RegName);
 
             results["StartUpType"] = StartType2String(StartUpTypeValue);
 
-
             return results;
         }
+
+        public static bool IsServiceRunning(string ServiceName)
+        {
+            ServiceController sc = new ServiceController(ServiceName);
+            var Running = sc.Status.Equals(ServiceControllerStatus.Running);
+            return Running;
+        }
+
 
         private static string StartType2String(string StartUpTypeValue)
         {
@@ -489,6 +553,43 @@ namespace Mitigate
             GENERIC_WRITE = 0x40000000,
             GENERIC_READ = 0x80000000
         }
+
+        [Flags]
+        public enum COMPermissionsMask : uint
+        {
+            COM_RIGHTS_EXECUTE = 1,
+            COM_RIGHTS_EXECUTE_LOCAL = 2,
+            COM_RIGHTS_EXECUTE_REMOTE = 4,
+            COM_RIGHTS_ACTIVATE_LOCAL = 8,
+            COM_RIGHTS_ACTIVATE_REMOTE = 16,
+            GENERIC_ALL = 0x10000000,
+            GENERIC_EXECUTE = 0x20000000,
+            GENERIC_WRITE = 0x40000000,
+            GENERIC_READ = 0x80000000
+        }
+
+        // Source: 
+        //https://docs.microsoft.com/en-us/windows/win32/services/service-security-and-access-rights
+        //https://devblogs.microsoft.com/oldnewthing/20170310-00/?p=95705
+        [Flags]
+        public enum ServiceManagerPermissionsMask: uint
+        {
+           
+            SC_MANAGER_CONNECT = 0x00000001,
+            SC_MANAGER_CREATE_SERVICE= 0x00000002,
+            SC_MANAGER_ENUMERATE_SERVICE = 0x00000004,
+            SC_MANAGER_LOCK = 0x0000008,
+            SC_MANAGER_QUERY_LOCK_STATUS = 0x00000010,
+            SC_MANAGER_MODIFY_BOOT_CONFIG = 0x00000020,
+            SC_MANAGER_ALL_ACCESS = 0x000F003F,
+            STANDARD_RIGHTS_READ = 0x00020000,
+            STANDARD_RIGHTS_WRITE = 0x00020000,
+            STANDARD_RIGHTS_EXECUTE = 0x00020000,
+            GENERIC_READ = STANDARD_RIGHTS_READ & SC_MANAGER_ENUMERATE_SERVICE & SC_MANAGER_QUERY_LOCK_STATUS,
+            GENERIC_EXECUTE = STANDARD_RIGHTS_EXECUTE & SC_MANAGER_CONNECT & SC_MANAGER_LOCK,
+            GENERIC_WRITE = STANDARD_RIGHTS_WRITE & SC_MANAGER_CREATE_SERVICE & SC_MANAGER_MODIFY_BOOT_CONFIG,
+            GENERIC_ALL = SC_MANAGER_ALL_ACCESS
+        }
         [Flags]
         public enum ServicePermissionsMask : uint
         {
@@ -511,15 +612,6 @@ namespace Mitigate
             GenericExecute = 536870912,
             GenericWrite = 1073741824,
             GenericRead = 2147483648
-        }
-        [Flags]
-        public enum COMPermissionsMask : uint
-        {
-            COM_RIGHTS_EXECUTE = 1,
-            COM_RIGHTS_EXECUTE_LOCAL = 2,
-            COM_RIGHTS_EXECUTE_REMOTE = 4,
-            COM_RIGHTS_ACTIVATE_LOCAL = 8,
-            COM_RIGHTS_ACTIVATE_REMOTE = 16,
         }
         public class SDDL
         {
@@ -607,7 +699,7 @@ namespace Mitigate
             public List<string> Permissions { get; set; }
         }
 
-        // Aspiration from https://stackoverflow.com/questions/7724110/convert-sddl-to-readable-text-in-net
+        // Inspiration from https://stackoverflow.com/questions/7724110/convert-sddl-to-readable-text-in-net
         public static class PermissionsDecoder
         {
             private static readonly ConcurrentDictionary<Type, Dictionary<uint, string>> _rights
@@ -638,8 +730,15 @@ namespace Mitigate
 
                 var DecodedSDDL = new SDDL();
 
-                DecodedSDDL.Owner = descriptor.Owner.Value;
-                DecodedSDDL.Group = descriptor.Group.Value;
+                if (descriptor.Owner != null)
+                {
+                    DecodedSDDL.Owner = descriptor.Owner.Value;
+                }
+
+                if (descriptor.Group != null)
+                {
+                    DecodedSDDL.Group = descriptor.Group.Value;
+                }
 
                 if (descriptor.SystemAcl != null)
                 {
@@ -652,13 +751,6 @@ namespace Mitigate
                 }
 
                 return DecodedSDDL;
-            }
-
-            private static string SidToAccountName(SecurityIdentifier sid)
-            {
-                return (sid.IsValidTargetType(typeof(NTAccount)))
-                     ? ((NTAccount)sid.Translate(typeof(NTAccount))).Value
-                     : sid.Value;
             }
 
             private static void DecodeAclEntries(List<ACE> DecodedACL, RawAcl acl, Dictionary<uint, string> rights)
@@ -690,9 +782,35 @@ namespace Mitigate
                             }
                         }
                     }
-                    else throw new Exception("Unknown ACE Structure");
+                    else throw new Exception("Not a known ACE Structure");
                     DecodedACL.Add(DecodedACE);
                 }
+            }
+            public static List<ACE> DecodeCOMRawACE<TRightsEnum>(byte[] ACL) where TRightsEnum : struct
+            {
+                var rightsEnumType = typeof(TRightsEnum);
+                if (!rightsEnumType.IsEnum ||
+                    Marshal.SizeOf(Enum.GetUnderlyingType(rightsEnumType)) != 4 ||
+                    !rightsEnumType.GetCustomAttributes(typeof(FlagsAttribute), true).Any())
+                {
+                    throw new ArgumentException("TRightsEnum must be a 32-bit integer System.Enum with Flags attribute", "TRightsEnum");
+                }
+                else if (ACL.Count() == 0)
+                    throw new ArgumentNullException("acl");
+
+                RawAcl rawAcl = new RawAcl(ACL, 20); //20 here was trial and error!
+
+                var rights = _rights.GetOrAdd(rightsEnumType,
+                                              t => Enum.GetValues(rightsEnumType)
+                                                       .Cast<uint>()
+                                                       .Where(n => n != 0 && (n & (n - 1)) == 0)
+                                                       .Distinct()
+                                                       .OrderBy(n => n)
+                                                       .Select(v => new { v, n = Enum.GetName(rightsEnumType, v) })
+                                                       .ToDictionary(x => x.v, x => x.n));
+                var result = new List<ACE>();
+                DecodeAclEntries(result, rawAcl, rights);
+                return result;
             }
             public static List<ACE> DecodeRawACE<TRightsEnum>(byte[] ACL) where TRightsEnum : struct
             {
@@ -720,6 +838,91 @@ namespace Mitigate
                 DecodeAclEntries(result, rawAcl, rights);
                 return result;
             }
+        }
+        public static Mitigation CheckAppComPermissions(string AppRegPath)
+        {
+            var LaunchPermissionsExist = Utils.RegExists("HKLM", AppRegPath, "LaunchPermission");
+            var AccessPermissionsExist = Utils.RegExists("HKLM", AppRegPath, "AccessPermission");
+
+            if (!LaunchPermissionsExist && !AccessPermissionsExist)
+            {
+                throw new Exception($"Default permissions are not overriden for {AppRegPath}");
+            }
+
+            // Parse COM ACLs. We report on every deviation from the default permissions but it does not mean
+            // it's always bad
+            var LaunchPermissions = Utils.GetRegValueBytes("HKLM", AppRegPath, "LaunchPermission");
+            var AccessPermissions = Utils.GetRegValueBytes("HKLM", AppRegPath, "AccessPermission");
+            try
+            {
+                if (LaunchPermissions != null)
+                {
+                    var LaunchPermissionsInsecure = EqualsDefaultLaunchPermissions(LaunchPermissions);
+                }
+                if (AccessPermissions != null)
+                {
+                    var AccessPermissionsInsecure = EqualsDefaultAccessPermissions(AccessPermissions);
+                }
+            }
+            catch
+            {
+                return Mitigation.TestFailed;
+            }
+            return Mitigation.True;
+        }
+        public static bool EqualsDefaultLaunchPermissions(byte[] RawLaunchPermission)
+        {
+            var LaunchACEs = Utils.PermissionsDecoder.DecodeCOMRawACE<Utils.COMPermissionsMask>(RawLaunchPermission);
+            // DefaultPermissions only contain 3 trustees
+            if (LaunchACEs.Count() != 3)
+            {
+                return false;
+            }
+            // System defaults are SYSTEM, INTERACTIVE and Administrators get full access
+            string[] SIDs = { "S-1-5-18", "S-1-5-4", "S-1-5-32-544" };
+            foreach (var SID in SIDs)
+            {
+                var SidPermissions = LaunchACEs.Where(o => o.Trustee == SID && o.AccessType == "AccessAllowed")
+                                                .Select(o => o.Permissions).FirstOrDefault();
+                if (SidPermissions == null || !COMFullAccess(SidPermissions))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        public static bool EqualsDefaultAccessPermissions(byte[] RawAccessPermission)
+        {
+            var LaunchACEs = Utils.PermissionsDecoder.DecodeCOMRawACE<Utils.COMPermissionsMask>(RawAccessPermission);
+            // DefaultPermissions only contain 3 trustees
+            if (LaunchACEs.Count() != 3)
+            {
+                return false;
+            }
+            // System defaults are SYSTEM, SELF and Administrators get full access
+            string[] SIDs = { "S-1-5-18", "S-1-5-10", "S-1-5-32-544" };
+            foreach (var SID in SIDs)
+            {
+                var SidPermissions = LaunchACEs.Where(o => o.Trustee == SID && o.AccessType == "AccessAllowed")
+                                                .Select(o => o.Permissions).FirstOrDefault();
+                if (SidPermissions == null || !COMFullAccess(SidPermissions))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        private static bool COMFullAccess(List<string> Permissions)
+        {
+            if (Permissions.Contains("COM_RIGHTS_EXECUTE") &&
+           Permissions.Contains("COM_RIGHTS_EXECUTE_LOCAL") &&
+           Permissions.Contains("COM_RIGHTS_EXECUTE_REMOTE") &&
+           Permissions.Contains("COM_RIGHTS_ACTIVATE_LOCAL") &&
+           Permissions.Contains("COM_RIGHTS_ACTIVATE_REMOTE")
+           )
+                return true;
+            else
+                return false;
         }
     }
 }

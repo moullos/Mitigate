@@ -20,14 +20,13 @@ namespace Mitigate
                 try
                 {
                     // Need to find a way to switch to MITRE TAXII server instead of the json file
-                    PrintUtils.PrintWarning("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
+                    PrintUtils.Warning("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
                     string json = w.DownloadString(Url);
                     AllAttack = JsonConvert.DeserializeObject<CTIRoot>(json);
 
                 }
                 catch (Exception)
                 {
-
                     throw new Exception("Unable to obtain latest Mitre Att&CK information. Please ensure that the device is connected to the internet.");
                 }
             }
@@ -50,7 +49,7 @@ namespace Mitigate
         public IEnumerable<string> GetAllTactics()
         {
             return new string[] { "initial-access", "execution", "persistence", "privilege-escalation", "defense-evasion", "credential-access", "discovery", "lateral-movement", "collection", "command-and-control", "exfiltration", "impact" };
-            // Dymanically doing this messes with the ordering of the tactics...
+            // Dynamically doing this messes with the ordering of the tactics...
             HashSet<string> TacticNames = new HashSet<string>();
             foreach (Technique t in WindowsTechniques)
                 foreach (var phase in t.kill_chain_phases)
