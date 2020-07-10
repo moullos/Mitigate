@@ -50,7 +50,7 @@ MITIG&TE has been tested on Windows 10 64bit in a simple AD lab. However, for an
 MITIG&TE makes use of a number of slightly adapted code snippets found through research for its checks. I have marked those code snippets and added a link to the source in each case but please don't hesitate to [contact me](https://t.me/mitigate) if you find anything not listed.
 
 ## Disclaimer
-MITIG&TE is to be used only when authorized and/or for educational purposes only and its findings should not be actioned before major consideration on user impact. 
+MITIG&TE is to be used only when authorized and/or for educational purposes only. Its findings should not be actioned before testing and consideration on user impact. 
 
 ## To Do
 - [ ] Expand technique coverage
@@ -58,7 +58,7 @@ MITIG&TE is to be used only when authorized and/or for educational purposes only
   - [x] Add support for Applocker rule enumeration
   - [ ] Add support for Software Restriction Policies enumeration
   - [ ] Add support for Windows Defender Application Guard enumeration
-- [ ] Web File Restriction check functionality (based on the artifacts in Atomic Red Team project)
+- [ ] Web File Restriction check functionality (based on the artifacts in the Atomic Red Team project)
 - [ ] Automate testing and add CI
 
 ## License: MIT
