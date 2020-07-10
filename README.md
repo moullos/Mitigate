@@ -14,8 +14,7 @@ The tool aims to allow security teams to easily account and track the impact of 
 MITIG&TE is currently under development. Current coverage [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/Coverage.json). 
 
 ## Quick Start and Example
-If you would like to try MITIG&TE you can either compile it yourself (recommended) or use the precompiled files in [bin](./bin). For maximum effectiveness, consider running MITIG&TE as an administrator and specifying a user for the least privilege checks. Ideally, that user should have the same privileges as a typical end-user in your environment. By default, MITIG&TE performs the checks for the last logged-in user. Once executed, MITIG&TE will pull the latest ATT&CK information and iterate over all the Windows techniques, executing the enumeration methods defined for each.
-
+If you would like to try MITIG&TE you can either compile it yourself (recommended) or use the precompiled files in [bin](./bin). For maximum effectiveness, consider running MITIG&TE as an administrator and specifying a user for the least privilege checks. Ideally, that user should have the same privileges as a typical end-user in your environment. By default, MITIG&TE performs the checks for the last logged-in user. When executed, MITIG&TE will pull the latest ATT&CK information and iterate over all the Windows techniques, pulling information on the mitigations defined for each one. 
 ```
 Mitigate.exe -OutFile=results.json                 # Outputs findings into results.json
 Mitigate.exe -OutFile=results.json -UserName=user1 # Outputs findings into results.json and performs least privileges checks for user1
@@ -31,7 +30,7 @@ In addition to the console output, MITIG&TE outputs a json file that can be inge
 
 ![](https://github.com/moullos/Mitigate/blob/master/examples/Navigator.PNG?raw=true)
 
-Hovering over a specific technique in the navigator will provide more context on the enumeration performed. For an interactive example, take a look [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/result.json).
+Hovering over a specific technique in the navigator will provide more context on the checks performed. For an interactive example, take a look [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/result.json).
 
 ## Contributing
 I will be gradually expanding coverage and testing as availability allows. All the enumeration logic resides within the [Tests.cs](./Tests.cs) file and a template for contributing additional enumeration modules is given there. If you consider contributing and have further questions don't hesitate to [contact me](https://t.me/mitigate).
