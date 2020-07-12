@@ -14,7 +14,7 @@ The tool aims to allow security teams to easily account and track the impact of 
 MITIG&TE is currently under development. Current coverage [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/Coverage.json). 
 
 ## Quick Start and Example
-If you would like to try MITIG&TE you can either compile it yourself (recommended) or use the latest [released](./releases/latest) version. For maximum effectiveness, consider running MITIG&TE as an administrator and specifying a user for the least privilege checks. Ideally, that user should have the same privileges as a typical end-user in your environment. By default, MITIG&TE performs the checks for the last logged-in user. When executed, MITIG&TE will pull the latest ATT&CK information and iterate over all the Windows techniques, pulling information on the mitigations defined for each one. 
+If you would like to try MITIG&TE you can either compile it yourself (recommended) or use the latest released version. For maximum effectiveness, consider running MITIG&TE as an administrator and specifying a user for the least privilege checks. Ideally, that user should have the same privileges as a typical end-user in your environment. By default, MITIG&TE performs the checks for the last logged-in user. When executed, MITIG&TE will pull the latest ATT&CK information and iterate over all the Windows techniques, pulling information on the mitigations defined for each one. 
 ```
 Mitigate.exe -OutFile=results.json                 # Outputs findings into results.json
 Mitigate.exe -OutFile=results.json -UserName=user1 # Outputs findings into results.json and performs least privileges checks for user1
@@ -67,7 +67,7 @@ MITIG&TE is to be used only when authorized and/or for educational purposes only
 - [ ] Automate testing and add CI
 - [ ] Add scoring functionality
   - [ ] Define Scoring Framework (The score should indicate the mitigating impact of a control/configuration against a technique)
-  - [ ] Assign mitigating scores to mitigations
+  - [ ] Assign mitigating scores to enumerations
 
 ## License: MIT
 [MITIG&TE's license](https://github.com/moullos/Mitigate/blob/master/LICENSE)
