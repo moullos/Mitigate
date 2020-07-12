@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Web.Script.Serialization;
 
 namespace Mitigate
 {
@@ -17,7 +17,6 @@ namespace Mitigate
         public static string NoMitigationsAvailable = "#009ACD";
         public static string Covered = "#9e9ac8";
         public static string Error = "#d62c08";
-
     }
 
     public class Layout
@@ -234,7 +233,9 @@ namespace Mitigate
         /// <param name="filename">Filename to export the JSON to</param>
         public void ToJSON(string filename)
         {
-            string JSONresult = JsonConvert.SerializeObject(this);
+            var JSON = new JavaScriptSerializer();
+            JSON.MaxJsonLength = int.MaxValue;
+            string JSONresult = JSON.Serialize(this);
             using (var tw = new StreamWriter(filename))
             {
                 tw.WriteLine(JSONresult.ToString());
@@ -258,7 +259,9 @@ namespace Mitigate
                     technique.color = ColorPalette.Covered;
                 
             }
-            string JSONresult = JsonConvert.SerializeObject(this);
+            var JSON = new JavaScriptSerializer();
+            JSON.MaxJsonLength = int.MaxValue;
+            string JSONresult = JSON.Serialize(this);
             using (var tw = new StreamWriter(filename))
             {
                 tw.WriteLine(JSONresult.ToString());

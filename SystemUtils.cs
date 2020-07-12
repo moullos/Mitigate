@@ -5,7 +5,6 @@ using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
 using System.Management;
-using System.Net.NetworkInformation;
 using System.Xml.Linq;
 
 namespace Mitigate
@@ -30,17 +29,10 @@ namespace Mitigate
         public static bool DoesAVExist()
         {
             string wmipathstr = @"\\" + Environment.MachineName + @"\root\SecurityCenter2";
-            try
-            {
-                ManagementObjectSearcher searcher = new ManagementObjectSearcher(wmipathstr, "SELECT * FROM AntivirusProduct");
-                ManagementObjectCollection instances = searcher.Get();
-                return (instances.Count > 0);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(String.Format("  [X] Exception: {0}", ex));
-                return false;
-            }
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(wmipathstr, "SELECT * FROM AntivirusProduct");
+            ManagementObjectCollection instances = searcher.Get();
+            return (instances.Count > 0);
+
         }
 
         // https://stackoverflow.com/questions/1331887/detect-antivirus-on-windows-using-c-sharp and winPEAS
@@ -48,24 +40,17 @@ namespace Mitigate
         {
             List<Dictionary<string, string>> results = new List<Dictionary<string, string>>();
             string wmipathstr = @"\\" + Environment.MachineName + @"\root\SecurityCenter2";
-            try
-            {
-                ManagementObjectSearcher searcher = new ManagementObjectSearcher(wmipathstr, "SELECT * FROM AntivirusProduct");
-                ManagementObjectCollection instances = searcher.Get();
 
-                foreach (ManagementObject instance in instances)
-                {
-                    Dictionary<string, string> antivirus = new Dictionary<string, string>();
-                    antivirus["Name"] = (string)instance["displayName"];
-                    antivirus["ProductEXE"] = (string)instance["pathToSignedProductExe"];
-                    antivirus["pathToSignedReportingExe"] = (string)instance["pathToSignedReportingExe"];
-                    results.Add(antivirus);
-                }
-            }
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(wmipathstr, "SELECT * FROM AntivirusProduct");
+            ManagementObjectCollection instances = searcher.Get();
 
-            catch (Exception ex)
+            foreach (ManagementObject instance in instances)
             {
-                Console.WriteLine(String.Format("  [X] Exception: {0}", ex));
+                Dictionary<string, string> antivirus = new Dictionary<string, string>();
+                antivirus["Name"] = (string)instance["displayName"];
+                antivirus["ProductEXE"] = (string)instance["pathToSignedProductExe"];
+                antivirus["pathToSignedReportingExe"] = (string)instance["pathToSignedReportingExe"];
+                results.Add(antivirus);
             }
 
             return results;
@@ -286,6 +271,7 @@ namespace Mitigate
         }
         public static Dictionary<string, bool> IsWDApplicationGuardEnabled()
         {
+            //https://docs.microsoft.com/en-us/windows/security/threat-protection/microsoft-defender-application-guard/configure-md-app-guard
             Dictionary<string, bool> results = new Dictionary<string, bool>();
             var WDAGStatus = Utils.GetRegValue("HKLM", @"SOFTWARE\Policies\Microsoft\AppHVSI", "AllowAppHVSI_ProviderSet");
             results["Edge"] = false;
@@ -307,12 +293,8 @@ namespace Mitigate
         }
         public static bool IsWDExploitGuardEnabled()
         {
-
-            var WDEGStatus = Utils.GetRegValue("HKLM", @"Software\Policies\Microsoft\Windows Defender ExploitGuard\Exploit Protection", "ExploitProtectionSettings");
-            if (WDEGStatus != "")
-                return true;
-            else
-                return false;
+            // Needs major redesign containing checks for ASR, Exploit Protection, Network Protection and Controlled Folder Access
+            return false;
         }
         public static bool RunAtInUserContext()
         {

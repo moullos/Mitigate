@@ -173,7 +173,7 @@ namespace Mitigate
             }
             throw new Exception("GetOutlookVersion: Outlook version could not be obtained");
         }
-        public static bool CheckForKB3191938()
+        public static bool IsVBBlockedOutlook()
         {
             string version = GetOfficeVersion();
             if (version != "15.0" && version != "16.0")
@@ -181,7 +181,7 @@ namespace Mitigate
                 throw new OfficeNotInstalledException("Unsupported office version");
             }
             /*
-            Outlook 2016: 16.0.4534.1001 or greater.
+            Outlook 2016: 16.0.4534.1001 or greater (KB3191938). 
             Outlook 2013: 15.0.4937.1000 or greater.
             */
             var OutlookVersion = GetOutlookVersion();
@@ -196,7 +196,7 @@ namespace Mitigate
             }
             else
             {
-                throw new Exception("CheckForKB3191938: Unknown Version");
+                throw new Exception("IsVBBlockedOutlook: Unknown Version");
             }
 
             if (OutlookVersion < RequiredVersion)
@@ -209,7 +209,7 @@ namespace Mitigate
                 return Utils.GetRegValue("HKCU", RegPath, "EnableUnsafeClientMailRules") != "1";
             }
         }
-        public static bool CheckForKB4011091()
+        public static bool CustomFormsDisabled()
         {
             //https://support.microsoft.com/en-us/office/custom-form-script-is-now-disabled-by-default-bd8ea308-733f-4728-bfcc-d7cce0120e94//
             string version = GetOfficeVersion();
@@ -218,7 +218,7 @@ namespace Mitigate
                 throw new OfficeNotInstalledException("Unsupported office version");
             }
             /*
-            Outlook 2016: 16.0.4588.1001 or greater.
+            Outlook 2016: 16.0.4588.1001 or greater (KB4011091).
             Outlook 2013: 15.0.4963.1000 or greater.
             Outlook 2010: 14.0.7188.5000 or greater.
             */
@@ -276,7 +276,7 @@ namespace Mitigate
                     RequiredVersion = new Version("16.0.4600.1000");
                     break;
                 default:
-                    throw new Exception("CheckForKB4011091: Unknown Version");
+                    throw new Exception("CheckForKB4011162: Unknown Version");
             }
             var OutlookVersion = GetOutlookVersion();
             if (OutlookVersion < RequiredVersion)

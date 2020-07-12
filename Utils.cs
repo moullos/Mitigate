@@ -1,5 +1,4 @@
 ﻿using Microsoft.Win32;
-using Newtonsoft.Json.Schema;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

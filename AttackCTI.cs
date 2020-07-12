@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
+using System.Web.Script.Serialization;
 
 namespace Mitigate
 {
@@ -15,21 +17,33 @@ namespace Mitigate
         public AttackCTI(string Url)
         {
             CTIRoot AllAttack;
+            string json;
             using (var w = new WebClient())
             {
                 try
                 {
                     // Need to find a way to switch to MITRE TAXII server instead of the json file
                     PrintUtils.Warning("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
-                    string json = w.DownloadString(Url);
-                    AllAttack = JsonConvert.DeserializeObject<CTIRoot>(json);
-
+                    json = w.DownloadString(Url);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     throw new Exception("Unable to obtain latest Mitre Att&CK information. Please ensure that the device is connected to the internet.");
                 }
+
+                try
+                {
+                    var JSON = new JavaScriptSerializer();
+                    JSON.MaxJsonLength = int.MaxValue;
+                    AllAttack = JSON.Deserialize<CTIRoot>(json);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("ATT&CK Json deserialiazation failed");
+                }
             }
+
+
             Technique[] items = AllAttack.objects;
             // Filtering all techniques
             var AllTechniques = items.Where(o => o.type == "attack-pattern" && o.revoked == false);

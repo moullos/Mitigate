@@ -82,7 +82,7 @@ namespace Mitigate
             // Check if mitigations for the technique exist in ATT&CK
             if (!ATTCK.DoesItHaveMitigations(technique))
             {
-                // If it doesn't have mitigations just add to the navigator with no mitigation available results
+                // If it doesn't have mitigations just add to the navigator with 'no mitigation available' results
                 navigator.AddMitigationInfo(technique, NoMitigationAvailable());
 
             }
@@ -104,11 +104,6 @@ namespace Mitigate
                 results[mitigation] = Mitigation.TestNotImplemented;
             }
             return results;
-        }
-
-        private static Mitigation TestNotPossible()
-        {
-            return Mitigation.CannotBeMeasured;
         }
 
         private static Dictionary<string, Mitigation> NoMitigationAvailable()
@@ -159,7 +154,6 @@ namespace Mitigate
             PrintUtils.PrintMitigationMessage(Message);
         }
 
-
         private static void AddMitigationResult(Dictionary<string, Mitigation> results, string Description, Dictionary<string, bool> info, bool Verbose = true)
         {
             results[Description] = CollateResults(info);
@@ -192,7 +186,7 @@ namespace Mitigate
                     PrintUtils.PrintMitigationResult(InfoResult);
                 }
             }
-            else PrintUtils.PrintMitigationMessage("Detailed results were omitted. Execute with -Verbose for full results");
+            else PrintUtils.PrintMitigationMessage("Detailed results were omitted. Execute with -Verbose for viewing full results");
         }
 
         private static Mitigation CollateResults(Dictionary<string, bool> info)
@@ -228,7 +222,6 @@ namespace Mitigate
                 }
             }
             return Mitigation.False;
-            // If all the configurations are enabled the technique is fully mitigated
         }
 
         /////////////////////////////////
@@ -296,12 +289,19 @@ namespace Mitigate
                 );
 
             // Check 1: Does it have AV? //
-            AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
+            try
+            {
+                AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Antivirus/Antimalware", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Cannot automatically measure User Training 
             AddMitigationResult(results, "User Training", Mitigation.CannotBeMeasured);
 
-            // Rest of the checks not implemented yet
             return results;
         }
 
@@ -317,7 +317,15 @@ namespace Mitigate
                 );
 
             // Check 1: Does it have AV? //
-            AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
+            try
+            {
+                AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Antivirus/Antimalware", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Cannot automatically measure User Training 
             AddMitigationResult(results, "User Training", Mitigation.CannotBeMeasured);
@@ -397,7 +405,7 @@ namespace Mitigate
                 "Disabled automatic DDE/OLE execution",
                 "Disabled embedded files in OneNote"
                 );
-            // Check 1: Is protected view enabled? //
+            // Check 1: Is protected view enabled?
             try
             {
                 var ProtectedViewInfo = OfficeUtils.GetProtectedViewInfo();
@@ -413,12 +421,11 @@ namespace Mitigate
                 AddMitigationResult(results, "Protected View Enabled", Mitigation.TestFailed);
                 PrintUtils.TestError(ex.Message);
             }
-            // Check 2: Check for Attack Surface Reduction Rules //
+            // Check 2: Check for Attack Surface Reduction Rules
             try
             {
                 if (SystemUtils.IsASREnabled())
                 {
-
                     AddMitigationResult(results, "Attack Surface Reduction Rules", SystemUtils.GetASRRulesStatus());
                 }
                 else
@@ -450,6 +457,7 @@ namespace Mitigate
                 AddMitigationResult(results, "Disabled automatic DDE/OLE execution", Mitigation.TestFailed);
                 PrintUtils.TestError(ex.Message);
             }
+
             // Check 4: Disable embedded files in OneNote //
             try
             {
@@ -466,6 +474,7 @@ namespace Mitigate
                 AddMitigationResult(results, "Disabled embedded files in OneNote", Mitigation.TestFailed);
                 PrintUtils.TestError(ex.Message);
             }
+
             return results;
         }
 
@@ -474,21 +483,36 @@ namespace Mitigate
         ///////////////////////////////
         public static Dictionary<string, Mitigation> T1078_002()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("MFA", "No domain accounts in local admin group");
+            Dictionary<string, Mitigation> results = InitiateMitigation("MFA", "No domain accounts in local admin group", "Audit");
+
+            AddMitigationResult(results, "Audit", Mitigation.CannotBeMeasured);
+            
             // Check 1: Are any domain users part of the local admin group?
             AddMitigationResult(results, "No domain accounts in local admin group", !UserUtils.IsADomainUserMemberofLocalAdmins());
+            
             return results;
         }
+
         //////////////////////////////
         // Local Accounts:T1078.003 //
         //////////////////////////////
         public static Dictionary<string, Mitigation> T1078_003()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("LAPS Enabled");
+            Dictionary<string, Mitigation> results = InitiateMitigation("LAPS Enabled", "Audit");
 
+            AddMitigationResult(results, "Audit", Mitigation.CannotBeMeasured);
 
             // Check 1: Is LAPS enabled?
-            AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
             return results;
         }
 
@@ -564,7 +588,11 @@ namespace Mitigate
         /////////////////////////////
         public static Dictionary<string, Mitigation> T1059_005()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("Antivirus", "Disable VB components", "AppLocker Enabled", "WDAC Enabled");
+            Dictionary<string, Mitigation> results = InitiateMitigation(
+                "Antivirus/Antimalware", 
+                "Disable VB components", 
+                "AppLocker Enabled", 
+                "WDAC Enabled");
 
             //Check 1: Applocker
             AddMitigationResult(results, "AppLocker Enabled", SystemUtils.IsAppLockerEnabled());
@@ -577,7 +605,7 @@ namespace Mitigate
             {
                 var VBComponentsStatus = new Dictionary<string, bool>();
                 VBComponentsStatus["Office VBA Disabled"] = OfficeUtils.IsVBADisabled();
-                VBComponentsStatus["Outlook VBA Disabled"] = OfficeUtils.CheckForKB3191938();
+                VBComponentsStatus["Outlook VBA Disabled"] = OfficeUtils.IsVBBlockedOutlook();
                 AddMitigationResult(results, "Disable VB components", VBComponentsStatus);
             }
             catch (Exception ex)
@@ -588,12 +616,12 @@ namespace Mitigate
             // Check 4: AV
             try
             {
-                AddMitigationResult(results, "Antivirus", SystemUtils.DoesAVExist());
+                AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
             }
-            catch
+            catch (Exception ex)
             {
-                AddMitigationResult(results, "Antivirus", Mitigation.TestFailed);
-
+                AddMitigationResult(results, "Antivirus/Antimalware", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
             }
             return results;
 
@@ -611,9 +639,6 @@ namespace Mitigate
                 );
             //Check 1: Checking for application guard
             AddMitigationResult(results, "WDAG Enabled", SystemUtils.IsWDApplicationGuardEnabled());
-
-            //Check 2: Checking for exploit guard
-            AddMitigationResult(results, "WDEG Enabled", SystemUtils.IsWDExploitGuardEnabled());
 
             // Check 3: ASR Rule
             try
@@ -900,7 +925,15 @@ namespace Mitigate
                 $"No remote WMI access to {Program.UserToCheck.SamAccountName}");
 
             // Check 1: Is LAPS enabled?
-            AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Check 2: WMI Permissions
             try
@@ -1173,7 +1206,6 @@ namespace Mitigate
             AddMitigationResult(results, "Enforce execution of only signed PowerShell scripts", SatisfyingPolicies.Contains(ExecutionPolicy));
 
             // Check 2: Are profile files immutable by non privileged users?
-
             AddMitigationResult(
                 results,
                "Make Profile Files immutable. Allow only certain admins to changes them",
@@ -1407,28 +1439,28 @@ namespace Mitigate
         public static Dictionary<string, Mitigation> T1137_003()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                "Block Outlook VB (KB3191938)",
-                "Disable Custom Forms by default (KB4011091)"
+                "Block Outlook VB",
+                "Disable Custom Forms by default"
                 );
             //https://docs.microsoft.com/en-us/microsoft-365/security/office-365-security/detect-and-remediate-outlook-rules-forms-attack?view=o365-worldwide
 
             try
             {
-                AddMitigationResult(results, "Block Outlook VB (KB3191938)", OfficeUtils.CheckForKB3191938());
+                AddMitigationResult(results, "Block Outlook VB", OfficeUtils.IsVBBlockedOutlook());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, @"Block Outlook VB (KB3191938)", Mitigation.TestFailed);
+                AddMitigationResult(results, "Block Outlook VB", Mitigation.TestFailed);
                 PrintUtils.TestError(ex.Message);
             }
 
             try
             {
-                AddMitigationResult(results, "Disable Custom Forms by default (KB4011091)", OfficeUtils.CheckForKB4011091());
+                AddMitigationResult(results, "Disable Custom Forms by default", OfficeUtils.CustomFormsDisabled());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, @"Disable Custom Forms by default(KB4011091)", Mitigation.TestFailed);
+                AddMitigationResult(results, "Disable Custom Forms by default", Mitigation.TestFailed);
                 PrintUtils.TestError(ex.Message);
             }
             return results;
@@ -1439,16 +1471,16 @@ namespace Mitigate
         public static Dictionary<string, Mitigation> T1137_004()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                "Remove the legacy Home Page feature (KB4011162)"
+                "Remove the legacy Home Page feature"
                 );
             //https://docs.microsoft.com/en-us/microsoft-365/security/office-365-security/detect-and-remediate-outlook-rules-forms-attack?view=o365-worldwide
             try
             {
-                AddMitigationResult(results, "Remove the legacy Home Page feature (KB4011162)", OfficeUtils.CheckForKB4011162());
+                AddMitigationResult(results, "Remove the legacy Home Page feature", OfficeUtils.CheckForKB4011162());
             }
             catch (Exception ex)
             {
-                AddMitigationResult(results, "Remove the legacy Home Page feature (KB4011162)", Mitigation.TestFailed);
+                AddMitigationResult(results, "Remove the legacy Home Page feature", Mitigation.TestFailed);
                 PrintUtils.TestError(ex.Message);
             }
             return results;
@@ -1461,6 +1493,7 @@ namespace Mitigate
         {
             return T1137_003();
         }
+
         ////////////////////////////////
         // T1542.001: System Firmware //
         ////////////////////////////////
@@ -1617,7 +1650,16 @@ namespace Mitigate
                 PrintUtils.TestError(ex.Message);
             }
             // Check 3: Is LAPS enabled?
-            AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
             return results;
 
         }
@@ -1659,6 +1701,7 @@ namespace Mitigate
                   Mitigation.False);
             return results;
         }
+
         //////////////////////////////////////////////////
         // T1087.002: Account Discovery: Domain Account //
         //////////////////////////////////////////////////
@@ -1666,6 +1709,7 @@ namespace Mitigate
         {
             return T1087_001();
         }
+
         //////////////////////////////
         // T1550.002: Pass the Hash //
         //////////////////////////////
@@ -1727,14 +1771,7 @@ namespace Mitigate
                 // Is the LocalAccountTokenFilterPolicy enabled?
                 var RegValue =
                     Utils.GetRegValue("HKLM", @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "LocalAccountTokenFilterPolicy");
-                if (RegValue != "1")
-                {
-                    AddMitigationResult(results, "Apply UAC restring to local account on network logon", Mitigation.True);
-                }
-                else
-                {
-                    AddMitigationResult(results, "Apply UAC restring to local account on network logon", Mitigation.False);
-                }
+                AddMitigationResult(results, "Apply UAC restring to local account on network logon", RegValue!="1");
             }
             catch (Exception ex)
             {
@@ -1752,18 +1789,27 @@ namespace Mitigate
                 AddMitigationResult(results, "No domain users as local admins", Mitigation.TestFailed);
                 PrintUtils.TestError(ex.Message);
             }
-
             return results;
         }
+
         ////////////////////////////////
         // T1550.003: Pass the Ticket //
         ////////////////////////////////
         public static Dictionary<string, Mitigation> T1550_003()
         {
-            Dictionary<string, Mitigation> results = InitiateMitigation("LAPS enabled", "No domain users as local admins");
+            Dictionary<string, Mitigation> results = InitiateMitigation("LAPS Enabled", "No domain users as local admins");
 
             // Check 1: Is LAPS enabled?
-            AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Check 2: No domain accounts as local admins
             try
@@ -1784,12 +1830,31 @@ namespace Mitigate
         public static Dictionary<string, Mitigation> T1574_001()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                "Audit", "Application Whitelisting", "Safe DLL Search Mode");
+                "Audit", "AppLocker Rules on DLLs", "Safe DLL Search Mode");
 
             AddMitigationResult(results, "Audit", Mitigation.CannotBeMeasured);
 
-            // Check 1: Application/DLL Whitelisting - TODO
-
+            // Check 1: Applocker on DLL
+            try
+            {
+                if (SystemUtils.IsAppLockerEnabled("DLL"))
+                {
+                    var DllRules = SystemUtils.GetAppLockerRules("DLL");
+                    if (DllRules.Count() > 0)
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", DllRules);
+                    }
+                    else
+                    {
+                        AddMitigationResult(results, "AppLocker Rules on DLLs", false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "AppLocker Rules on DLLs", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
             // Check 2: Safe DLL Search Mode
             // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order?redirectedfrom=MSDN
             AddMitigationResult(results, "Safe DLL Search Mode", SystemUtils.IsSafeDllSafeSearchModeOn());
@@ -1820,7 +1885,7 @@ namespace Mitigate
             Dictionary<string, Mitigation> results = InitiateMitigation(
                 "Windows Credential Guard",
                 "Disabling/Restricting Outbound NTLM",
-                "LAPS enabled",
+                "LAPS Enabled",
                 "No domain users as local admins",
                 "Run LSASS as PPL"
                 );
@@ -1832,7 +1897,16 @@ namespace Mitigate
             AddMitigationResult(results, "Disabling/Restricting Outbound NTLM", SystemUtils.IsOutboundNTLMDisabled());
 
             // Check 3: LAPS
-            AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Check 4: Domain Users in local admin group
             try
@@ -1857,7 +1931,7 @@ namespace Mitigate
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
                 "Disabling/Restricting Outbound NTLM",
-                "LAPS enabled",
+                "LAPS Enabled",
                 "No domain users as local admins"
                 );
 
@@ -1866,7 +1940,16 @@ namespace Mitigate
             AddMitigationResult(results, "Disabling/Restricting Outbound NTLM", SystemUtils.IsOutboundNTLMDisabled());
 
             // Check 2: LAPS
-            AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Check 3: Domain Users in local admin group
             try
@@ -1982,13 +2065,22 @@ namespace Mitigate
         public static Dictionary<string, Mitigation> T1021_002()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                "LAPS enabled",
+                "LAPS Enabled",
                 "Deny remote use of local admin credentials to log into the system",
                 "No domain users as local admins"
                 );
 
             // Check 1: LAPS
-            AddMitigationResult(results, "LAPS enabled", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Check 2: Remote local admin login
             try
@@ -2468,7 +2560,7 @@ namespace Mitigate
         public static Dictionary<string, Mitigation> T1221()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                "Antivirus",
+                "Antivirus/Antimalware",
                 "Macros Disabled/Signed Only",
                 "Network Intrusion Prevention",
                 "User Training"
@@ -2477,7 +2569,15 @@ namespace Mitigate
             AddMitigationResult(results, "User Training", Mitigation.CannotBeMeasured);
 
             // Check 1: Antivirus
-            AddMitigationResult(results, "Antivirus", SystemUtils.DoesAVExist());
+            try
+            {
+                AddMitigationResult(results, "Antivirus/Antimalware", SystemUtils.DoesAVExist());
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "Antivirus/Antimalware", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Check 2: Macros
             try
@@ -2532,13 +2632,22 @@ namespace Mitigate
         public static Dictionary<string, Mitigation> T1546_003()
         {
             Dictionary<string, Mitigation> results = InitiateMitigation(
-                    "Enable LAPS",
+                    "LAPS Enabled",
                     "Attack Surface Reduction Rules",
                     $"No remote WMI access to {Program.UserToCheck.SamAccountName}"
                 );
 
             // Check 1: Is LAPS enabled?
-            AddMitigationResult(results, "Enable LAPS", SystemUtils.IsLapsEnabled());
+            try
+            {
+                AddMitigationResult(results, "LAPS Enabled", SystemUtils.IsLapsEnabled());
+
+            }
+            catch (Exception ex)
+            {
+                AddMitigationResult(results, "LAPS Enabled", Mitigation.TestFailed);
+                PrintUtils.TestError(ex.Message);
+            }
 
             // Check 2: WMI Permissions
             try

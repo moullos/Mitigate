@@ -52,13 +52,22 @@ MITIG&TE makes use of a number of slightly adapted code snippets found through r
 MITIG&TE is to be used only when authorized and/or for educational purposes only. Its findings should not be actioned before testing and consideration on user impact. 
 
 ## To Do
-- [ ] Expand technique coverage
+- [ ] Expand technique coverage (duh!)
 - [ ] Improve app whitelisting checks
-  - [x] Add support for Applocker rule enumeration
-  - [ ] Add support for Software Restriction Policies enumeration
-  - [ ] Add support for Windows Defender Application Guard enumeration
+  - [x] Add support for Applocker rules
+  - [ ] Add support for Software Restriction Policies
+  - [ ] Add support for Windows Defender Application Control
+- [ ] Improve Windows Defender Application Guard enumeration
+- [ ] Add support for Windows Defender Exploit Guard
+  - [x] ASR rules enumeration
+  - [ ] Exploit Protection settings
+  - [ ] Control Folder Access settings
+  - [ ] Network Protection settings
 - [ ] Web File Restriction check functionality (based on the artifacts in the Atomic Red Team project)
 - [ ] Automate testing and add CI
+- [ ] Add scoring functionality
+  - [ ] Define Scoring Framework (The score should indicate the mitigating impact of a control/configuration against a technique)
+  - [ ] Assign mitigating scores to mitigations
 
 ## License: MIT
 [MITIG&TE's license](https://github.com/moullos/Mitigate/blob/master/LICENSE)
