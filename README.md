@@ -5,7 +5,7 @@
 MITIG&TE is a Windows binary that automatically enumerates Windows settings in order to identify MITRE ATT&CK™ techniques mitigated due to configuration hardening and existing endpoint controls. It relies heavily on the amazing work of the MITRE ATT&CK™ team and the [mitigations](https://attack.mitre.org/mitigations/enterprise/) defined for each of the techniques. It is written in C# and it's dependent on .NET Framework v4.
 
 ## Goals
-The tool aims to allow security teams to easily account and track the impact of endpoint configuration hardening and controls have against their threat profile. Additionally it can be used to identify  configuration hardening settings that can further improve security posture. Use MITIG&TE to:
+The tool aims to allow security teams to easily account and track the impact endpoint configuration hardening and controls have against their threat profile. Additionally it can be used to identify configuration hardening settings that can further improve security posture. Use MITIG&TE to:
  - Identify techniques that are currently mitigated/less likely to be executed successfully, posing less risk to your environment
  - Surface non-applied endpoint controls that can improve endpoint hardening
  - Combine with threat intelligence and your existing detection capabilities to get a holistic view of your security posture mapped against ATT&CK
@@ -33,7 +33,7 @@ In addition to the console output, MITIG&TE outputs a json file that can be inge
 Hovering over a specific technique in the navigator will provide more context on the checks performed. For an interactive example, take a look [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/result.json).
 
 ## Contributing
-I will be gradually expanding coverage and testing as availability allows. All the enumeration logic resides within the [Tests.cs](./Tests.cs) file and a template for contributing additional enumeration modules is given there. If you consider contributing and have further questions don't hesitate to [contact me](https://t.me/mitigate).
+I will be gradually expanding coverage and adding more features as availability allows. All the enumeration logic resides within the [Tests.cs](./Tests.cs) file and a template for contributing additional enumeration modules is given there. If you are considering contributing and have further questions don't hesitate to [contact me](https://t.me/mitigate).
 
 ## Issues and Feature Requests
 MITIG&TE has been tested on Windows 10 64bit in a simple AD lab. However, for any bug reports and features request please raise an issue. For now, bugs will carry higher priority than new feature requests.
@@ -49,7 +49,7 @@ MITIG&TE has been tested on Windows 10 64bit in a simple AD lab. However, for an
 MITIG&TE makes use of a number of slightly adapted code snippets found through research for its checks. I have marked those code snippets and added a link to the source in each case but please don't hesitate to [contact me](https://t.me/mitigate) if you find anything not listed.
 
 ## Disclaimer
-MITIG&TE is to be used only when authorized and/or for educational purposes only. Its findings should not be actioned before testing and consideration on user impact. 
+MITIG&TE is to be used only when authorized and/or for educational purposes only. Its findings should not be actioned before testing and consideration on user impact.
 
 ## To Do
 - [ ] Expand technique coverage (duh!)
@@ -65,7 +65,7 @@ MITIG&TE is to be used only when authorized and/or for educational purposes only
   - [ ] Network Protection settings
 - [ ] Web File Restriction check functionality (based on the artifacts in the Atomic Red Team project)
 - [ ] Automate testing and add CI
-- [ ] Add scoring functionality
+- [ ] Add scoring/weight functionality
   - [ ] Define Scoring Framework (The score should indicate the mitigating impact of a control/configuration against a technique)
   - [ ] Assign mitigating scores to enumerations
 
