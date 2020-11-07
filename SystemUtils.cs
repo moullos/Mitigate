@@ -5,26 +5,89 @@ using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Runtime.InteropServices;
 using System.Xml.Linq;
 
 namespace Mitigate
 {
     class SystemUtils
     {
+        //////////////////////
+        /// IsDomainJoined ///
+        //////////////////////
+        /// The clases and functions here are dedicated to discover if the current host is joined in a domain or not, and get the domain name if so
+        /// It can be done using .Net (default) and WMI (used if .Net fails)
+        internal class Win32
+        {
+            public const int ErrorSuccess = 0;
 
+            [DllImport("Netapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+            public static extern int NetGetJoinInformation(string server, out IntPtr domain, out NetJoinStatus status);
+
+            [DllImport("Netapi32.dll")]
+            public static extern int NetApiBufferFree(IntPtr Buffer);
+
+            public enum NetJoinStatus
+            {
+                NetSetupUnknownStatus = 0,
+                NetSetupUnjoined,
+                NetSetupWorkgroupName,
+                NetSetupDomainName
+            }
+
+        }
 
         public static bool IsDomainJoined()
         {
+            // returns Compuer Domain if the system is inside an AD (an nothing if it is not)
             try
             {
-                System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain();
-                return true;
+                Win32.NetJoinStatus status = Win32.NetJoinStatus.NetSetupUnknownStatus;
+                IntPtr pDomain = IntPtr.Zero;
+                int result = Win32.NetGetJoinInformation(null, out pDomain, out status);
+                if (pDomain != IntPtr.Zero)
+                {
+                    Win32.NetApiBufferFree(pDomain);
+                }
+
+                if (result == Win32.ErrorSuccess)
+                {
+                    // If in domain, return domain name, if not, return empty
+                    if (status == Win32.NetJoinStatus.NetSetupDomainName)
+                        return true;
+                    return false;
+                }
+
             }
-            catch (ActiveDirectoryObjectNotFoundException)
+
+            catch (Exception ex)
             {
-                return false;
+                PrintUtils.Debug(ex.StackTrace);
+                IsDomainJoinedWmi();
             }
+            return false;
         }
+
+        public static bool IsDomainJoinedWmi()
+        {
+            try
+            {
+                ManagementObject ComputerSystem;
+                using (ComputerSystem = new ManagementObject(String.Format("Win32_ComputerSystem.Name='{0}'", Environment.MachineName)))
+                {
+                    ComputerSystem.Get();
+                    object Result = ComputerSystem["PartOfDomain"];
+                    return (Result != null && (bool)Result);
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintUtils.Debug(ex.StackTrace);
+            }
+            //By default local
+            return false;
+        }
+
         // https://stackoverflow.com/questions/1331887/detect-antivirus-on-windows-using-c-sharp and winPEAS
         public static bool DoesAVExist()
         {
