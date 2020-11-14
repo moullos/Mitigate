@@ -18,6 +18,7 @@ namespace Mitigate
         public bool Debug { get; private set; }
         public string OutFile { get; private set; }
         public string Username { get; private set; }
+        public string AttackPath { get; private set; }
 
 
 
@@ -35,7 +36,8 @@ namespace Mitigate
             Verbose = ParseAndRemoveSwitchArgument("-Verbose", false);
             Username = ParseAndRemoveKeyValueArgument("-Username");
             Full = ParseAndRemoveSwitchArgument("-Full", false);
-            Full = ParseAndRemoveSwitchArgument("-Debug", false);
+            Debug = ParseAndRemoveSwitchArgument("-Debug", false);
+            AttackPath = ParseAndRemoveKeyValueArgument("-AttackPath", true);
         }
 
         private bool ParseAndRemoveSwitchArgument(string key, bool defaultValue)
@@ -80,6 +82,7 @@ namespace Mitigate
             Console.WriteLine("       -Verbose : Increases the verbosity of the output for some of the enumerations");
             Console.WriteLine("       -ExportCoverage : Outputs a navigator layer file just capturing the technique coverage of the implemented enumerations");
             Console.WriteLine("       -Full : Performs more detailed COM and WMI permissions enumerations");
+            Console.WriteLine("       -AttackPath : The path of the Attack file in case of limited connectivity.(https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json)");
         }
     }
 }

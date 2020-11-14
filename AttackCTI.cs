@@ -18,31 +18,46 @@ namespace Mitigate
         {
             CTIRoot AllAttack;
             string json;
-            using (var w = new WebClient())
+
+            if (String.IsNullOrEmpty(Program.Arguments.AttackPath))
+            {
+                using (var w = new WebClient())
+                {
+                    try
+                    {
+                        // Need to find a way to switch to MITRE TAXII server instead of the json file
+                        PrintUtils.Warning("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
+                        json = w.DownloadString(Url);
+                    }
+                    catch
+                    {
+                        throw new Exception("Unable to obtain latest Mitre Att&CK information. Please ensure that the device is connected to the internet. Consider using the -AttackPath flag to point to the file on disk");
+                    }
+                }
+            }
+            else
             {
                 try
                 {
-                    // Need to find a way to switch to MITRE TAXII server instead of the json file
-                    PrintUtils.Warning("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
-                    json = w.DownloadString(Url);
+                    PrintUtils.Warning($"Pulling latest ATT&CK matrix data from {Program.Arguments.AttackPath}");
+                    json = File.ReadAllText(Program.Arguments.AttackPath);
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("Unable to obtain latest Mitre Att&CK information. Please ensure that the device is connected to the internet.");
-                }
-
-                try
-                {
-                    var JSON = new JavaScriptSerializer();
-                    JSON.MaxJsonLength = int.MaxValue;
-                    AllAttack = JSON.Deserialize<CTIRoot>(json);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("ATT&CK Json deserialiazation failed");
+                    throw new Exception($"Unable to read {Program.Arguments.AttackPath} due to: {ex.Message}");
                 }
             }
 
+            try
+            {
+                var JSON = new JavaScriptSerializer();
+                JSON.MaxJsonLength = int.MaxValue;
+                AllAttack = JSON.Deserialize<CTIRoot>(json);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("ATT&CK Json deserialiazation failed");
+            }
 
             Technique[] items = AllAttack.objects;
             // Filtering all techniques
