@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Web.Script.Serialization;
 
+
 namespace Mitigate
 {
     class AttackCTI
@@ -13,9 +14,14 @@ namespace Mitigate
         IEnumerable<Technique> WindowsTechniques = null;
         IEnumerable<Technique> MitigationRelationships = null;
         IEnumerable<Technique> Mitigations = null;
+        // using System.Net;
 
         public AttackCTI(string Url)
         {
+
+            ServicePointManager.Expect100Continue = true;
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+
             CTIRoot AllAttack;
             string json;
 
@@ -29,8 +35,9 @@ namespace Mitigate
                         PrintUtils.Warning("Pulling latest ATT&CK matrix data from github.com/mitre/cti");
                         json = w.DownloadString(Url);
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        PrintUtils.Debug(ex.Message);
                         throw new Exception("Unable to obtain latest Mitre Att&CK information. Please ensure that the device is connected to the internet. Consider using the -AttackPath flag to point to the file on disk");
                     }
                 }
