@@ -14,7 +14,7 @@ The tool aims to allow security teams to easily account and track the impact end
 MITIG&TE is currently under development. Current coverage [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/Coverage.json). 
 
 ## Quick Start and Example
-If you would like to try MITIG&TE you can either compile it yourself (recommended) or use the latest released version. For maximum effectiveness, consider running MITIG&TE as an administrator and specifying a user for the least privilege checks. Ideally, that user should have the same privileges as a typical end-user in your environment. By default, MITIG&TE performs the checks for the last logged-in user. When executed, MITIG&TE will pull the latest ATT&CK information and iterate over all the Windows techniques, pulling information on the mitigations defined for each one. 
+If you would like to try MITIG&TE you can either compile it yourself for now. CI for automated binaries is coming soon. For maximum effectiveness, consider running MITIG&TE as an administrator and specifying a user for the least privilege checks. Ideally, that user should have the same privileges as a typical end-user in your environment. By default, MITIG&TE performs the checks for the last logged-in user. When executed, MITIG&TE will pull the latest ATT&CK information and iterate over all the Windows techniques, pulling information on the mitigations defined for each one. 
 ```
 Mitigate.exe -OutFile=results.json                 # Outputs findings into results.json
 Mitigate.exe -OutFile=results.json -UserName=user1 # Outputs findings into results.json and performs least privileges checks for user1
@@ -28,13 +28,32 @@ In addition to the console output, MITIG&TE outputs a json file that can be inge
 - ![](https://via.placeholder.com/15/2a9d8f/000000?text=+) `All mitigations were detected`
 - ![](https://via.placeholder.com/15/009ACD/000000?text=+) `Technique cannot be mitigated`
 
-![](https://github.com/moullos/Mitigate/blob/master/examples/Navigator.PNG?raw=true)
+![](https://github.com/moullos/Mitigate/blob/master/examples/Navigator.png?raw=true)
 
-Hovering over a specific technique in the navigator will provide more context on the checks performed. For an interactive example, take a look [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/result.json).
+Hovering over a specific technique in the navigator will provide more context on the checks performed. For an interactive example, take a look [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/results.json).
+
+## Contributing
+Mitig&te is fully modular and enumerations can be added by dropping the relevant file into the logical file location, include in the Visual Studio Solution Explorer and compile. More instructions and a template coming soon.
+
+If you are considering contributing and have further questions don't hesitate to open an issue.
+
+## Issues and Feature Requests
+MITIG&TE has been tested on Windows 10 64bit in a simple AD lab based on [Detection Lab](https://github.com/clong/DetectionLab). However, for any bug reports and features request please raise an issue. For now, bugs will carry higher priority than new feature requests.
+
+## Inspirations
+- [MITRE ATT&CK™](https://attack.mitre.org)
+- [WinPEAS](https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/tree/master/winPEAS)
+- [SeatBelt](https://github.com/GhostPack/Seatbelt)
+- [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team)
+- [DeTTECT](https://github.com/rabobank-cdc/DeTTECT)
+
+## Acknowlegments
+MITIG&TE makes use of a number of slightly adapted code snippets found through research for its checks. I have marked those code snippets and added a link to the source in each case but please don't hesitate to [contact me](https://t.me/mitigate) if you find anything not listed.
+
+## Disclaimer
+MITIG&TE is to be used only when authorized and/or for educational purposes only and comes with no guarantee. Its findings should not be actioned before testing and consideration on user impact.
 
 ## Full list of enumerations
-<details>
-  <summary> Expand </summary>
 ### Account Use Policies
 No enumerations defined for the mitigation yet
 ### Active Directory Configuration
@@ -194,31 +213,8 @@ No enumerations defined for the mitigation yet
 No enumerations defined for the mitigation yet
 ### Vulnerability Scanning
 No enumerations defined for the mitigation yet
-</
-
-details>
 
 
-## Contributing
-Mitig&te is fully modular and enumerations can be added by dropping the relevant file into the logical file location, include in the Visual Studio Solution Explorer and compile. More instructions and a template coming soon.
-
-If you are considering contributing and have further questions don't hesitate to open an issue.
-
-## Issues and Feature Requests
-MITIG&TE has been tested on Windows 10 64bit in a simple AD lab based on [Detection Lab](https://github.com/clong/DetectionLab). However, for any bug reports and features request please raise an issue. For now, bugs will carry higher priority than new feature requests.
-
-## Inspirations
-- [MITRE ATT&CK™](https://attack.mitre.org)
-- [WinPEAS](https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/tree/master/winPEAS)
-- [SeatBelt](https://github.com/GhostPack/Seatbelt)
-- [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team)
-- [DeTTECT](https://github.com/rabobank-cdc/DeTTECT)
-
-## Acknowlegments
-MITIG&TE makes use of a number of slightly adapted code snippets found through research for its checks. I have marked those code snippets and added a link to the source in each case but please don't hesitate to [contact me](https://t.me/mitigate) if you find anything not listed.
-
-## Disclaimer
-MITIG&TE is to be used only when authorized and/or for educational purposes only and comes with no guarantee. Its findings should not be actioned before testing and consideration on user impact.
 
 ## License: MIT
 [MITIG&TE's license](https://github.com/moullos/Mitigate/blob/master/LICENSE)
