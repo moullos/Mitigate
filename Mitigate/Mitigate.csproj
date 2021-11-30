@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E22B8DAB-586F-4A0C-8EFD-DE0ABFDD7A1A}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Mitigate</RootNamespace>
+    <AssemblyName>Mitigate</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.DirectoryServices.AccountManagement" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AttackCTI.cs" />
+    <Compile Include="Enumerations\ActiveDirectoryConfiguration\ProtectedUserGroup.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRVbaJS.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRObfuscated.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRUsb.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRWmi.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRLsass.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRRansomware.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRPrevelanceRule.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\AlwaysInstallElevatedDisabled.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Antivirus.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\SSH.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\NetworkCachedCredsDisabled.cs" />
+    <Compile Include="Enumerations\NoMitigationAvailable\NoMitigationAvailable.cs" />
+    <Compile Include="Enumerations\NoMitigationAvailable.cs" />
+    <Compile Include="Interop\Netapi32.cs" />
+    <Compile Include="Interop\Shlwapi.cs" />
+    <Compile Include="Navigator.cs" />
+    <Compile Include="Enumerations\AccountUsePolicies\LockOutPolicies.cs" />
+    <Compile Include="Enumerations\Antivirus\AMSI.cs" />
+    <Compile Include="Enumerations\Antivirus\Antivirus.cs" />
+    <Compile Include="Enumerations\ApplicationIsolationAndSandboxing\BrowserSandboxes.cs" />
+    <Compile Include="Enumerations\ApplicationIsolationAndSandboxing\Protected View.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASROffice.cs" />
+    <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\EndpointSecuritySolutions.cs" />
+    <Compile Include="Enumerations\BooleanConfig.cs" />
+    <Compile Include="Enumerations\BootIntegrity\SecureBoot.cs" />
+    <Compile Include="Enumerations\CannotBeMeasured.cs" />
+    <Compile Include="Enumerations\CodeSigning\PowershellExecutionPolicy.cs" />
+    <Compile Include="Enumerations\CodeSigning\SoftwareRestrictionPolicies.cs" />
+    <Compile Include="Enumerations\ConfigurationDetected.cs" />
+    <Compile Include="Enumerations\Context.cs" />
+    <Compile Include="Enumerations\CredentialsAccessProtection\CredentialGuard.cs" />
+    <Compile Include="Enumerations\DisabledFeature.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Autorun.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Bluetooth.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\CMSTP.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\DCOM.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\DDEExecution.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\HyperV.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\InstallUtil.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\LLMNRandNetBIOS.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\MSBuild.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Mshta.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Odbcconf.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\OfficeAddins.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Powershell.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\RDP.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\RegsvcsRegasm.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Screensavers.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\VisualBasic.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\WinRM.cs" />
+    <Compile Include="Enumerations\Enumeration.cs" />
+    <Compile Include="Enumerations\EnumerationResults.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\BrowserExtensions.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\CMSTP.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\CompliledHTMLFile.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\InstallUtil.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\Mshta.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\Odbcconf.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\PubPrn.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\RegasmRegsvcs.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\Screensaver.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\UnknownBinaries.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\UnknownDLLs.cs" />
+    <Compile Include="Enumerations\ExecutionPrevention\Verclsid.cs" />
+    <Compile Include="Enumerations\ExploitProtection\ASR.cs" />
+    <Compile Include="Enumerations\ExploitProtection\WindowsExploitGuard.cs" />
+    <Compile Include="Enumerations\Failed.cs" />
+    <Compile Include="Enumerations\NoMitigationDetected.cs" />
+    <Compile Include="Enumerations\NotApplicable.cs" />
+    <Compile Include="Enumerations\NotImplemented.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\AdminEnumerationPrevention.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\BITSJobsLifetime.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\CachedDomainCredsLimit.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\DisableNTLM.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\DisableWDigest.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\NetworkLevelAuthenticationRDP.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\NetworkShareDiscovery.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\RDPSessionTimeout.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\RemovableMediaRestriction.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\RootCertAdmin.cs" />
+    <Compile Include="Enumerations\OperatingSystemConfiguration\ScheduleTasks.cs" />
+    <Compile Include="Enumerations\PasswordPolicies\ChromePassword.cs" />
+    <Compile Include="Enumerations\PasswordPolicies\NISTGuidelines.cs" />
+    <Compile Include="Enumerations\RemovedFeature.cs" />
+    <Compile Include="Enumerations\ResultType.cs" />
+    <Compile Include="Enumerations\ToolBlocked.cs" />
+    <Compile Include="Enumerations\ToolDetected.cs" />
+    <Compile Include="MitigateArguments.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\AppLockerUtils.cs" />
+    <Compile Include="Utils\ASRUtils.cs" />
+    <Compile Include="Utils\TrackerGeneration.cs" />
+    <Compile Include="Utils\DocumentationGeneration.cs" />
+    <Compile Include="Utils\UserUtils.cs" />
+    <Compile Include="Utils\SystemUtils.cs" />
+    <Compile Include="Utils\Helper.cs" />
+    <Compile Include="Utils\OfficeUtils.cs" />
+    <Compile Include="Utils\PrintUtils.cs" />
+    <Compile Include="Utils\SoftwareRestrictionUtils.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
