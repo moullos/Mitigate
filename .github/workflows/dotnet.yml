@@ -16,7 +16,7 @@ jobs:
       name: Checkout Code
      
     - name: Setup MSBuild Path
-      uses: warrenbuckley/Setup-MSBuild@v1
+      uses: microsoft/setup-msbuild@v1.1
       
     - name: Structure of files 1
       run: ls -R 
