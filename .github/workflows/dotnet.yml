@@ -29,6 +29,5 @@ jobs:
         
     - name: Test Release
       uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags')
       with:
         files: Mitigate\bin\Release\mitigate.exe
