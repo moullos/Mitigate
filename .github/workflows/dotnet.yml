@@ -27,8 +27,8 @@ jobs:
     - name: Structure of files 2
       run: ls -R 
       
-    - name: Upload artifact
+    - name: Download artifact
       uses: actions/download-artifact@v2
       with:
         name: mitigate.exe
-        path: bin\Release
+        path: Mitigate\bin\Release
