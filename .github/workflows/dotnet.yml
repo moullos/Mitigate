@@ -18,17 +18,17 @@ jobs:
     - name: Setup MSBuild Path
       uses: microsoft/setup-msbuild@v1.1
       
-    - name: Structure of files 1
-      run: ls -R 
-      
     - name: Build
       run: msbuild Mitigate.sln /p:Configuration=Release
-      
-    - name: Structure of files 2
-      run: ls -R 
       
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: mitigate.exe
         path: Mitigate\bin\Release\mitigate.exe
+        
+    - name: Test Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags')
+      with:
+        files: Mitigate\bin\Release\mitigate.exe
