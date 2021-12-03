@@ -12,7 +12,23 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: EasyDesk/action-dotnet-build@v1
+    - uses: actions/checkout@v1
+      name: Checkout Code
+     
+    - name: Setup MSBuild Path
+      uses: warrenbuckley/Setup-MSBuild@v1
+      
+    - name: Structure of files 1
+      run: ls -R 
+      
+    - name: Build
+      run: msbuild Mitigate.sln /p:Configuration=Release
+      
+    - name: Structure of files 2
+      run: ls -R 
+      
+    - name: Upload artifact
+      uses: actions/download-artifact@v2
       with:
-        build-configuration: Release
-        path: ./Mitigate/
+        name: mitigate.exe
+        path: bin\Release
