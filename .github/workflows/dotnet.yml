@@ -26,8 +26,3 @@ jobs:
       with:
         name: mitigate.exe
         path: Mitigate\bin\Release\mitigate.exe
-        
-    - name: Test Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: Mitigate\bin\Release\mitigate.exe
