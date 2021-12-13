@@ -112,7 +112,7 @@
     <Compile Include="Enumerations\ExecutionPrevention\UnknownBinaries.cs" />
     <Compile Include="Enumerations\ExecutionPrevention\UnknownDLLs.cs" />
     <Compile Include="Enumerations\ExecutionPrevention\Verclsid.cs" />
-    <Compile Include="Enumerations\ExploitProtection\ASR.cs" />
+    <Compile Include="Enumerations\ExploitProtection\AttackSurfaceReduction.cs" />
     <Compile Include="Enumerations\ExploitProtection\WindowsExploitGuard.cs" />
     <Compile Include="Enumerations\Failed.cs" />
     <Compile Include="Enumerations\NoMitigationDetected.cs" />
