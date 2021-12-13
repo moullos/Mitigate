@@ -149,14 +149,14 @@ namespace Mitigate
                 }
             }
 
+            // Adding the enumeration results to the navigator
             navigator.IngestResults(AllEnumerations);
-            
-            // unmitigated techniques
 
+            // Exporting the navigator in the json format and outputing
             navigator.ToJSON(Arguments.OutFile);
 
 
-            // Exporting the file for the navigator
+            // Exporting the coverage file for the navigator if it was request in the arguments
             if (Arguments.ExportCoverage)
                 navigator.ExportCoverage("Coverage.json");
         }

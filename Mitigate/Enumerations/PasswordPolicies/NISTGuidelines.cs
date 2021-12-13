@@ -43,7 +43,7 @@ namespace Mitigate.Enumerations.PasswordPolicies
                 yield return new ConfigurationDetected("Max Password Age (NIST guideline <= 60)", pi.MaxPasswordAge.Days.ToString(), pi.MaxPasswordAge.Days <= 60 & pi.MaxPasswordAge.Days != 0);
                 yield return new ConfigurationDetected("Password History Length (NIST guideline >= 24)", pi.PasswordHistoryLength.ToString(), pi.PasswordHistoryLength >= 24);
                 yield return new BooleanConfig("Password Complexity", pi.PasswordProperties.HasFlag(SamServer.PASSWORD_PROPERTIES.DOMAIN_PASSWORD_COMPLEX));
-                yield return new ConfigurationDetected("Min Password Age (NIST guideline >=1", pi.MinPasswordAge.Days.ToString(), pi.MinPasswordAge.Days >= 1);
+                yield return new ConfigurationDetected("Min Password Age (NIST guideline >=1)", pi.MinPasswordAge.Days.ToString(), pi.MinPasswordAge.Days >= 1);
                 yield return new ConfigurationDetected("Min Password Length (NIST guideline >=14)", pi.MinPasswordLength.ToString(), pi.MinPasswordLength >= 14);
                 yield return new BooleanConfig("Not stored in cleartext", !pi.PasswordProperties.HasFlag(SamServer.PASSWORD_PROPERTIES.DOMAIN_PASSWORD_STORE_CLEARTEXT));
             }

@@ -23,7 +23,12 @@ namespace Mitigate.Enumerations
             if (result)
                 return $"{Info} was set to {value}";
             else
-                return $"{Info} was set to {value}. Expected value was {condition}";
+            {
+                if (!String.IsNullOrEmpty(condition))
+                    return $"{Info} was set to {value}. Expected value was {condition}";
+                else
+                    return $"{Info} was set to {value}";
+            }
         }
 
         public override ResultType ToResultType()
