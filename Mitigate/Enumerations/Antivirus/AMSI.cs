@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 
 
-namespace Mitigate.Enumerations.Antivirus
+namespace Mitigate.Enumerations
 {
     class AMSI : Enumeration
     {
         public override string Name => "AMSI";
-        public override string MitigationType => "Antivirus/Antimalware";
+        public override string MitigationType => MitigationTypes.AntivirusAntimalware;
         public override string MitigationDescription => "Consider utilizing the Antimalware Scan Interface (AMSI) on Windows 10 to analyze commands after being processed/interpreted.";
         public override string EnumerationDescription => "Checks if any providers has been registered for AMSI";
 

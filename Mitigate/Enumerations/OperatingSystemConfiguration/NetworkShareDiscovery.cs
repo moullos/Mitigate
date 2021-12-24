@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
+namespace Mitigate.Enumerations
 {
     class NetworkShareDiscoveryPrevention : Enumeration
     {
         public override string Name => "Network Share Discovery Prevention";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Enable Windows Group Policy 'Do Not Allow Anonymous Enumeration of SAM Accounts and Shares' security setting to limit users who can enumerate network shares.";
         public override string EnumerationDescription => "Checks if the anonymous enumeration of SAM accounts is restricted";
 

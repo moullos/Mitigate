@@ -56,11 +56,12 @@
     <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRRansomware.cs" />
     <Compile Include="Enumerations\BehaviorPreventionOnEndpoint\ASRPrevelanceRule.cs" />
     <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\AlwaysInstallElevatedDisabled.cs" />
-    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\Antivirus.cs" />
+    <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\TODOWakeuponlan.cs" />
     <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\SSH.cs" />
     <Compile Include="Enumerations\DisableorRemoveFeatureorProgram\NetworkCachedCredsDisabled.cs" />
     <Compile Include="Enumerations\NoMitigationAvailable\NoMitigationAvailable.cs" />
     <Compile Include="Enumerations\NoMitigationAvailable.cs" />
+    <Compile Include="Enumerations\MitigationTypes.cs" />
     <Compile Include="Interop\Netapi32.cs" />
     <Compile Include="Interop\Shlwapi.cs" />
     <Compile Include="Navigator.cs" />

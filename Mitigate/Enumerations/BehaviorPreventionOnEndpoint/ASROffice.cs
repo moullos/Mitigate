@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 
 
-namespace Mitigate.Enumerations.BehaviourPreventionOnEndpoint
+namespace Mitigate.Enumerations
 {
     class ASROffice : Enumeration
     {
         public override string Name => "ASR Office";
-        public override string MitigationType => "Behavior Prevention on Endpoint";
+        public override string MitigationType => MitigationTypes.BehaviorPreventionOnEndpoint;
         public override string MitigationDescription => "On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent DDE attacks and spawning of child processes from Office programs.";
         public override string EnumerationDescription => "Office ASR rules status";
 

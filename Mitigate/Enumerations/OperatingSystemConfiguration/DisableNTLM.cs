@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
-{
+namespace Mitigate.Enumerations
+{ 
     class DisableNTLM : Enumeration
     {
         public override string Name => "Disable NTLM";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Consider disabling or restricting NTLM.";
         public override string EnumerationDescription => "Checks if both inbound and outbound NTLM is disabled";
 

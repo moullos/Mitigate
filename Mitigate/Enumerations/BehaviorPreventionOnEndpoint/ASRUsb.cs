@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 
 
-namespace Mitigate.Enumerations.BehaviourPreventionOnEndpoint
+namespace Mitigate.Enumerations
 {
     class ASRUsb : Enumeration
     {
         public override string Name => "ASR USB";
-        public override string MitigationType => "Behavior Prevention on Endpoint";
+        public override string MitigationType => MitigationTypes.BehaviorPreventionOnEndpoint;
         public override string MitigationDescription => "On Windows 10, enable Attack Surface Reduction (ASR) rules to block unsigned/untrusted executable files (such as .exe, .dll, or .scr) from running from USB removable drives.";
         public override string EnumerationDescription => "USB ASR rules status";
 

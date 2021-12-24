@@ -6,12 +6,12 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
+namespace Mitigate.Enumerations
 {
     class RDP : Enumeration
     {
         public override string Name => "RDP Disabled";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Disable the RDP service if it is unnecessary.";
         public override string EnumerationDescription => "Checks if RDP is disabled";
 

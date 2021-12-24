@@ -3,12 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Mitigate.Enumerations.ExecutionPrevention
+namespace Mitigate.Enumerations
 {
     class Verclsid : Enumeration
     {
         public override string Name => "Verclsid.exe block";
-        public override string MitigationType => "Execution Prevention";
+        public override string MitigationType => MitigationTypes.ExecutionPrevention;
         public override string MitigationDescription => "Block execution of Verclsid if they are not required for a given system or network to prevent potential misuse by adversaries.";
         public override string EnumerationDescription => "Checks for SRP or AppLocker restrictions on Verclsid.exe";
 

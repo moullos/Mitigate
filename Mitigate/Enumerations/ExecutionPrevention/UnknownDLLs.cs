@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.ExecutionPrevention
+namespace Mitigate.Enumerations
 {
     class UnknownDLLs : Enumeration
     {
         public override string Name => "Prevent Execution of Unknown DLLs";
-        public override string MitigationType => "Execution Prevention";
+        public override string MitigationType => MitigationTypes.ExecutionPrevention;
         public override string MitigationDescription => "Identify and block potentially malicious software by using application control tools like Windows Defender Application Control, AppLocker, or Software Restriction Policies [6 that are capable of auditing and/or blocking unknown DLLs.";
         public override string EnumerationDescription => "Checks if SRPs or Applocker is enabled for DLLs";
 

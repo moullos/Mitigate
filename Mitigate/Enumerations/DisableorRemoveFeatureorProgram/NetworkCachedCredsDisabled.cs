@@ -1,17 +1,12 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.DisableorRemoveFeatureorProgram
+namespace Mitigate.Enumerations
 {
-    class VisualBasic : Enumeration
+    class NetworkCachedCredsDisabled : Enumeration
     {
         public override string Name => "NetworkCachedCredsDisabled";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Consider enabling the “Network access: Do not allow storage of passwords and credentials for network authentication” setting that will prevent network credentials from being stored by the Credential Manager.";
         public override string EnumerationDescription => "Checks if the storage of password and credentials for network authentication is disable";
 

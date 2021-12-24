@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
+namespace Mitigate.Enumerations
 {
     class RegsvcsRegasm : Enumeration
     {
         public override string Name => "Regsvcs/Regasm Removed";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Regsvcs and Regasm may not be necessary within a given environment.";
         public override string EnumerationDescription => "Checks if Regsvcs and Regasm are removed";
 

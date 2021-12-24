@@ -1,13 +1,12 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.ExecutionPrevention
-{
+namespace Mitigate.Enumerations
+{ 
     class BrowserExtensions : Enumeration
     {
         public override string Name => "Browser Extensions";
-        public override string MitigationType => "Execution Prevention";
+        public override string MitigationType => MitigationTypes.ExecutionPrevention;
         public override string MitigationDescription => "Set a browser extension allow or deny list as appropriate for your security policy.";
         public override string EnumerationDescription => "Checks if a Chrome Extension Whitelist is enforced";
 

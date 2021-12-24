@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.BehaviourPreventionOnEndpoint
+
+namespace Mitigate.Enumerations
 {
     class EndpointSecuritySolutions : Enumeration
     {
         public override string Name => "Endpoint Security Solutions";
-        public override string MitigationType => "Behavior Prevention on Endpoint";
+        public override string MitigationType => MitigationTypes.BehaviorPreventionOnEndpoint;
         public override string MitigationDescription => "Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.";
         public override string EnumerationDescription => "TODO";
 

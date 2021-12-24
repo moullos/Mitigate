@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
+namespace Mitigate.Enumerations
 {
     class DisableWDigest : Enumeration
     {
         public override string Name => "Disable WDigest";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Consider disabling or restricting WDigest.";
         public override string EnumerationDescription => "Checks if WDigest is disabled";
 

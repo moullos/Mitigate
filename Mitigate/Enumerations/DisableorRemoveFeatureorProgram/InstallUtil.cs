@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.DisabledorRemoveFeatureorProgram
+
+namespace Mitigate.Enumerations
 {
   
-    class InstallUtil : Enumeration
+    class InstallUtilRemoved : Enumeration
     {
         public override string Name => "InstallUtil Removed";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "InstallUtil may not be necessary within a given environment.";
         public override string EnumerationDescription => "Checks if InstallUtil is removed";
 

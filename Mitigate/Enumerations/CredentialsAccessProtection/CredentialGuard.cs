@@ -5,12 +5,12 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Mitigate.Enumerations.CredentialAccessProtection
+namespace Mitigate.Enumerations
 {
     class CredentialGuard : Enumeration
     {
         public override string Name => "Credential Guard";
-        public override string MitigationType => "Credential Access Protection";
+        public override string MitigationType => MitigationTypes.CredentialAccessProtection;
         public override string MitigationDescription => "On Windows 10 and Server 2016, enable Windows Defender Credential Guard to run lsass.exe in an isolated virtualized environment without any device drivers.";
         public override string EnumerationDescription => "Credential Guard Status";
 

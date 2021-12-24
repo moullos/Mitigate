@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
+namespace Mitigate.Enumerations
 {
     class CachedDomainCredsLimit : Enumeration
     {
         public override string Name => "Limit the number of cached credentials";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Consider limiting the number of cached credentials (HKLM\SOFTWARE\Microsoft\Windows NT\Current Version\Winlogon\cachedlogonscountvalue)";
         public override string EnumerationDescription => "Checks if the cached credentials limit is less than 10";
 

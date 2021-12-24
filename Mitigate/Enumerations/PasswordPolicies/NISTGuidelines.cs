@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Security.Principal;
 using static Mitigate.Utils.UserUtils;
 
-namespace Mitigate.Enumerations.PasswordPolicies
+namespace Mitigate.Enumerations
 {
     class NISTGuidelines : Enumeration
     {
         public override string Name => "NIST guidelines";
-        public override string MitigationType => "Password Policies";
+        public override string MitigationType => MitigationTypes.PasswordPolicies;
         public override string MitigationDescription => "Refer to NIST guidelines when creating password policies.";
         public override string EnumerationDescription => "Checks if the Windows password policies are in line with the NIST guidelines";
 

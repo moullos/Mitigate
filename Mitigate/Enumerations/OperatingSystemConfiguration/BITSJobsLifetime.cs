@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
-{
+namespace Mitigate.Enumerations
+{ 
     class BITSJobsLifetimeLimit : Enumeration
     {
         public override string Name => "Bits Jobs Lifetime Limit";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Consider reducing the default BITS job lifetime in Group Policy or by editing the JobInactivityTimeout and MaxDownloadTime Registry values in HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\BITS.";
         public override string EnumerationDescription => "Checks if the BITS job configuration is in line with the CIS benchmarks";
 

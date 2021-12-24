@@ -1,12 +1,12 @@
 ﻿using Mitigate.Utils;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.BootIntegrity
+namespace Mitigate.Enumerations
 {
     class SecureBoot : Enumeration
     {
         public override string Name => "Secure Boot";
-        public override string MitigationType => "Boot Integrity";
+        public override string MitigationType => MitigationTypes.BootIntegrity;
         public override string MitigationDescription => "Check the integrity of the existing BIOS and device firmware to determine if it is vulnerable to modification.";
         public override string EnumerationDescription => "Secure Boot Status";
 

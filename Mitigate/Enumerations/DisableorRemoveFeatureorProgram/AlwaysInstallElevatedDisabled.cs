@@ -11,7 +11,7 @@ namespace Mitigate.Enumerations.DisableorRemoveFeatureorProgram
     class AlwaysInstallElevatedDisabled : Enumeration
     {
         public override string Name => "AlwaysInstallElevated disabled";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Consider disabling the AlwaysInstallElevated policy to prevent elevated execution of Windows Installer packages.";
         public override string EnumerationDescription => "Checks if the AlwaysInstallElevated registry key is disabled";
 

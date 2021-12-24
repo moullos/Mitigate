@@ -3,12 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Mitigate.Enumerations.ExecutionPrevention
+namespace Mitigate.Enumerations
 {
     class RegasmRegsvcs : Enumeration
     {
         public override string Name => "Regasm.exe and/or Regsvcs block";
-        public override string MitigationType => "Execution Prevention";
+        public override string MitigationType => MitigationTypes.ExecutionPrevention;
         public override string MitigationDescription => "Block execution of Regsvcs.exe and Regasm.exe if they are not required for a given system or network to prevent potential misuse by adversaries.";
         public override string EnumerationDescription => "Checks for SRP or AppLocker restrictions on Regasm.exe and/or REgsvcs.exe";
 

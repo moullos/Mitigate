@@ -1,12 +1,12 @@
 ﻿using Mitigate.Utils;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
+namespace Mitigate.Enumerations
 {
     class RDPSessionTimeout : Enumeration
     {
         public override string Name => "RDP sessions timeout";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Change GPOs to define shorter timeouts sessions and maximum amount of time any single session can be active. Change GPOs to specify the maximum amount of time that a disconnected session stays active on the RD session host server.";
         public override string EnumerationDescription => "Checks if RDP sessions timeout limits are set";
 

@@ -1,16 +1,12 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.ApplicationIsolationAndSandboxing
+namespace Mitigate.Enumerations
 {
     class ProtectedView : Enumeration
     {
         public override string Name => "Protected View";
-        public override string MitigationType => "Application Isolation and Sandboxing";
+        public override string MitigationType => MitigationTypes.ApplicationIsolationAndSandboxing;
         public override string MitigationDescription => "Ensure Office Protected View is enabled.";
         public override string EnumerationDescription => "Protected view status";
 

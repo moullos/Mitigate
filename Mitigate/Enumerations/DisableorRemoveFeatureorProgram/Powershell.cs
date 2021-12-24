@@ -2,16 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
+
+namespace Mitigate.Enumerations
 {
     class PowerShell : Enumeration
     {
         public override string Name => "Powershell Restrictions";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "It may be possible to remove PowerShell from systems when not needed, but a review should be performed to assess the impact to an environment, since it could be in use for many legitimate purposes and administrative functions.";
         public override string EnumerationDescription => "Checks for SRP policies on Powershell";
 

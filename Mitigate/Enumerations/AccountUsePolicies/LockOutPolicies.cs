@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using Mitigate.Enumerations;
+﻿using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.AccountUsePolicies
+
+namespace Mitigate.Enumerations
 {
     class LockOutPolicies : Enumeration
     {
         public override string Name => "Account lockout policy";
-        public override string MitigationType => "Account Use Policies";
+        public override string MitigationType => MitigationTypes.AccountUsePolicies;
         public override string MitigationDescription => "Set account lockout policies after a certain number of failed login attempts to prevent passwords from being guessed.";
         public override string EnumerationDescription => "Checks if a lockout threshold has been configured";
         public override string[] Techniques => new string[] {

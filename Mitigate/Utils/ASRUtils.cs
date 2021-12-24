@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Mitigate.Utils
 {
@@ -12,7 +11,7 @@ namespace Mitigate.Utils
             string RegPath = @"SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR";
             string RegKey = "ExploitGuard_ASR_Rules";
 
-            return Helper.GetRegValue("HKLM", RegPath, RegKey) == "1" ? true : false;
+            return Helper.GetRegValue("HKLM", RegPath, RegKey) == "1";
         }
 
         internal static bool IsRuleEnabled(string RuleGuid)
@@ -63,7 +62,7 @@ namespace Mitigate.Utils
                     RuleDescription = String.Format("Unknown Rule({0})", ruleGUID);
                 }
                 // ruleGUID key needs to be set to 1 for blocking
-                ASRRulesStatus[RuleDescription] = Helper.GetRegValue("HKLM", RegPath, ruleGUID) == "1" ? true : false;
+                ASRRulesStatus[RuleDescription] = Helper.GetRegValue("HKLM", RegPath, ruleGUID) == "1";
             }
             return ASRRulesStatus;
         }

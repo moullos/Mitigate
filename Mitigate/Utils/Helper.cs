@@ -16,37 +16,6 @@ namespace Mitigate.Utils
 {
     class Helper
     {
-        public static Tuple<string, string, int> RunCmd(string cmd)
-        {
-            Process process = new Process();
-            process.StartInfo.FileName = "cmd.exe";
-            process.StartInfo.Arguments = "/c " + cmd;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            string err = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-            return new Tuple<string, string, int>(output, err, process.ExitCode);
-        }
-        private static Tuple<string, string, int> RunCmd(string cmd, string UserName)
-        {
-            // Maybe try to run a command to see what happends instead of enumerating for restricting policies
-            Process process = new Process();
-            process.StartInfo.FileName = "cmd.exe";
-            process.StartInfo.UserName = UserName;
-            process.StartInfo.Arguments = "/c " + cmd;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            string err = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-            return new Tuple<string, string, int>(output, err, process.ExitCode);
-        }
-
         public static Tuple<string, string, int> Base64EncodedCommand(string psCommand)
         {
             ;
@@ -67,6 +36,7 @@ namespace Mitigate.Utils
 
             return new Tuple<string, string, int>(output, err, process.ExitCode);
         }
+
         public static bool CheckForRestrictions(string ExecPath, string UserName)
         {
             if (String.IsNullOrEmpty(ExecPath)) throw new ArgumentNullException();
@@ -97,7 +67,7 @@ namespace Mitigate.Utils
             return false;
         }
 
-        public static bool CheckApplockerPolicyforDenied(string ExecPath, string UserName)
+        private static bool CheckApplockerPolicyforDenied(string ExecPath, string UserName)
         {
             // Will possible trigger AV
             string CommandMask = @"Get-AppLockerPolicy -Effective | Test-AppLockerPolicy -Path '{0}' -User '{1}' -Filter Denied,DeniedByDefault";
@@ -366,34 +336,6 @@ namespace Mitigate.Utils
             var DecodedSDDL = Helper.PermissionsDecoder.DecodeSddlString<FileSystemRights>(SDDLString);
             return DecodedSDDL.DirectoryWriteAccess(SIDs);
 
-        }
-
-        public List<GroupPrincipal> Sid2Group(List<string> SIDs)
-        {
-            List<GroupPrincipal> Groups = new List<GroupPrincipal>();
-
-            PrincipalContext MachineContext = new PrincipalContext(ContextType.Machine);
-            PrincipalContext DomainContext = Program.IsDomainJoined ? new PrincipalContext(ContextType.Domain) : null;
-            foreach (string SID in SIDs)
-            {
-                // Checking if the SID corresponds to a machine group
-                GroupPrincipal Group = GroupPrincipal.FindByIdentity(MachineContext, IdentityType.Sid, SID);
-                if (Group != null)
-                {
-                    Groups.Add(Group);
-                    continue;
-                }
-                // Checking if the SID corresponds to a domain group
-                if (Program.IsDomainJoined)
-                {
-                    Group = GroupPrincipal.FindByIdentity(DomainContext, IdentityType.Sid, SID);
-                    if (Group != null)
-                    {
-                        Groups.Add(Group);
-                    }
-                }
-            }
-            return Groups;
         }
 
         public static string SidToAccountName(SecurityIdentifier sid)
@@ -780,39 +722,7 @@ namespace Mitigate.Utils
                 return result;
             }
         }
-        /* TODO: Ensure that you don't need this and remove
-        public static Mitigation CheckAppComPermissions(string AppRegPath)
-        {
-            var LaunchPermissionsExist = Utils.RegExists("HKLM", AppRegPath, "LaunchPermission");
-            var AccessPermissionsExist = Utils.RegExists("HKLM", AppRegPath, "AccessPermission");
-
-            if (!LaunchPermissionsExist && !AccessPermissionsExist)
-            {
-                throw new Exception($"Default permissions are not overriden for {AppRegPath}");
-            }
-
-            // Parse COM ACLs. We report on every deviation from the default permissions but it does not mean
-            // it's always bad
-            var LaunchPermissions = Utils.GetRegValueBytes("HKLM", AppRegPath, "LaunchPermission");
-            var AccessPermissions = Utils.GetRegValueBytes("HKLM", AppRegPath, "AccessPermission");
-            try
-            {
-                if (LaunchPermissions != null)
-                {
-                    var LaunchPermissionsInsecure = EqualsDefaultLaunchPermissions(LaunchPermissions);
-                }
-                if (AccessPermissions != null)
-                {
-                    var AccessPermissionsInsecure = EqualsDefaultAccessPermissions(AccessPermissions);
-                }
-            }
-            catch
-            {
-                return Mitigation.TestFailed;
-            }
-            return Mitigation.True;
-        }
-        */
+ 
         public static bool EqualsDefaultLaunchPermissions(byte[] RawLaunchPermission)
         {
             var LaunchACEs = Helper.PermissionsDecoder.DecodeCOMRawACE<Helper.COMPermissionsMask>(RawLaunchPermission);
@@ -855,6 +765,7 @@ namespace Mitigate.Utils
             }
             return true;
         }
+
         private static bool COMFullAccess(List<string> Permissions)
         {
             if (Permissions.Contains("COM_RIGHTS_EXECUTE") &&

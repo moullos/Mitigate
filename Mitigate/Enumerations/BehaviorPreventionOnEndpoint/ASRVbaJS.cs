@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 
 
-namespace Mitigate.Enumerations.BehaviourPreventionOnEndpoint
+namespace Mitigate.Enumerations
 {
     class ASRVbaJS : Enumeration
     {
         public override string Name => "ASR VBA/JS";
-        public override string MitigationType => "Behavior Prevention on Endpoint";
+        public override string MitigationType => MitigationTypes.BehaviorPreventionOnEndpoint;
         public override string MitigationDescription => "On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Visual Basic and JavaScript scripts from executing potentially malicious downloaded conten";
         public override string EnumerationDescription => "VBA/JS ASR rules status";
 

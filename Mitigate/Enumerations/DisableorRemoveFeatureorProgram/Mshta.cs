@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
-{
+namespace Mitigate.Enumerations
+{ 
   
     class MSHTA : Enumeration
     {
         public override string Name => "MSHTA Removed";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Mshta.exe may not be necessary within a given environment since its functionality is tied to older versions of Internet Explorer that have reached end of life.";
         public override string EnumerationDescription => "Checks if Mshta is removed";
 

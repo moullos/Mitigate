@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
 {
@@ -11,7 +8,7 @@ namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
     class CMSTP : Enumeration
     {
         public override string Name => "CMSTP Removed";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "CMSTP.exe may not be necessary within a given environment (unless using it for VPN connection installation).";
         public override string EnumerationDescription => "Checks if CMSTP is removed";
 

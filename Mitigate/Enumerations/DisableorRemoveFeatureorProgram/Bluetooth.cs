@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
+
+namespace Mitigate.Enumerations
 {
   
     class Bluetooth : Enumeration
     {
         public override string Name => "Bluetooth Disabled";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Disable Bluetooth in local computer security settings or by group policy if it is not needed within an environment.";
         public override string EnumerationDescription => "TODO";
 

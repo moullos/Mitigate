@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
+namespace Mitigate.Enumerations
 {
     class RemovableMediaRestrictrion : Enumeration
     {
         public override string Name => "Removable Media Restriction";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Disallow or restrict removable media at an organizational policy level if they are not required for business operations.";
         public override string EnumerationDescription => "Checks if removable storage use is disabled";
 

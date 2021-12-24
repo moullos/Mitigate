@@ -1,16 +1,14 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.CodeSigning
+
+namespace Mitigate.Enumerations
 {
     class PowershellExecutionPolicy : Enumeration
     {
         public override string Name => "Powershell Execution Policy";
-        public override string MitigationType => "Code Signing";
+        public override string MitigationType => MitigationTypes.CodeSigning;
         public override string MitigationDescription => "Set PowerShell execution policy to execute only signed scripts.";
         public override string EnumerationDescription => "Checks if the default powershell execution policy only allows for the execution of signed scripts";
 

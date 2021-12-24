@@ -1,17 +1,12 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
+namespace Mitigate.Enumerations
 {
     class WinRM : Enumeration
     {
         public override string Name => "WinRM Disabled";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Disable the WinRM service.";
         public override string EnumerationDescription => "Checks if WinRM is disabled";
 

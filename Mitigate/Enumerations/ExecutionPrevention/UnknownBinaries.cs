@@ -1,14 +1,13 @@
 ﻿using Mitigate.Utils;
 using System;
 using System.Collections.Generic;
-using System.Runtime.Remoting.Messaging;
 
-namespace Mitigate.Enumerations.ExecutionPrevention
+namespace Mitigate.Enumerations
 {
     class UnknownBinaries : Enumeration
     {
         public override string Name => "Prevent Execution of Unknown Binaries";
-        public override string MitigationType => "Execution Prevention";
+        public override string MitigationType => MitigationTypes.ExecutionPrevention;
         public override string MitigationDescription => " Identify and block potentially malicious software executed through accessibility features functionality by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.";
         public override string EnumerationDescription => "Checks for SRP or AppLocker restrictions on unknown binaries";
 

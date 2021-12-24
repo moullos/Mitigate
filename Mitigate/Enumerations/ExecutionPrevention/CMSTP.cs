@@ -3,12 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Mitigate.Enumerations.ExecutionPrevention
+namespace Mitigate.Enumerations
 {
     class CSMTP : Enumeration
     {
         public override string Name => "CMSTP blocked";
-        public override string MitigationType => "Execution Prevention";
+        public override string MitigationType => MitigationTypes.ExecutionPrevention;
         public override string MitigationDescription => "Consider using application control configured to block execution of CMSTP.exe if it is not required for a given system or network to prevent potential misuse by adversaries.";
         public override string EnumerationDescription => "Checks for SRP or AppLocker restrictions on CMSTP";
 

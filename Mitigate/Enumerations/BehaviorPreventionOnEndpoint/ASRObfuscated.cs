@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 
 
-namespace Mitigate.Enumerations.BehaviourPreventionOnEndpoint
-{
+namespace Mitigate.Enumerations
+{ 
     class ASRObfuscated : Enumeration
     {
         public override string Name => "ASR Obfuscated";
-        public override string MitigationType => "Behavior Prevention on Endpoint";
+        public override string MitigationType => MitigationTypes.BehaviorPreventionOnEndpoint;
         public override string MitigationDescription => "On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent execution of potentially obfuscated scripts. ";
         public override string EnumerationDescription => "Obfuscated ASR rules status";
 

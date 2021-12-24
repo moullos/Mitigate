@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 
 
-namespace Mitigate.Enumerations.BehaviourPreventionOnEndpoint
+namespace Mitigate.Enumerations
 {
     class ASR : Enumeration
     {
         public override string Name => "ASR Prevelance Rule";
-        public override string MitigationType => "Behavior Prevention on Endpoint";
+        public override string MitigationType => MitigationTypes.BehaviorPreventionOnEndpoint;
         public override string MitigationDescription => "On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent executable files from running unless they meet a prevalence, age, or trusted list criteria";
         public override string EnumerationDescription => "Prevelance ASR rules status";
 

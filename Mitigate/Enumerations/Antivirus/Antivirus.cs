@@ -1,14 +1,13 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Management;
 
-namespace Mitigate.Enumerations.Antivirus
+namespace Mitigate.Enumerations
 {
     internal class Antivirus : Enumeration
     {
         public override string Name => "Antivirus";
-        public override string MitigationType => "Antivirus/Antimalware";
+        public override string MitigationType => MitigationTypes.AntivirusAntimalware;
         public override string MitigationDescription => "Anti-virus can be used to automatically quarantine suspicious files.";
         public override string EnumerationDescription => "Checks if any antivirus is registered (WMI-based)";
 

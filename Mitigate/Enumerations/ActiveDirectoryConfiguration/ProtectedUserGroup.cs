@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Mitigate.Enumerations.ActiveDirectoryConfigurations
+namespace Mitigate.Enumerations
 {
     class ProtectedUserGroup : Enumeration
     {
         public override string Name => "Protected Users Group";
-        public override string MitigationType => "Active Directory Configuration";
+        public override string MitigationType => MitigationTypes.ActiveDirectoryConfiguration;
         public override string MitigationDescription => "Consider adding users to the 'Protected Users' Active Directory security group. This can help limit the caching of users' plaintext credentials.	";
         public override string EnumerationDescription => "Checks if the user last logged in the device is part of the Protected Users group. Use the '-User' flag if you want the check to run for another user";
 

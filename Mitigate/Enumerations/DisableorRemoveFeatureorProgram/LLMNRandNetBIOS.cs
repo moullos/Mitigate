@@ -1,19 +1,15 @@
 ﻿using Mitigate.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Management;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
-{
-  
+
+namespace Mitigate.Enumerations
+{   
     class LLMNRandNetBios : Enumeration
     {
         public override string Name => "LLMNR and NetBIOS disabled";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Disable LLMNR and NetBIOS in local computer security settings or by group policy if they are not needed within an environment.";
         public override string EnumerationDescription => "Checks LLMNR and NetBIOS are disabled";
 

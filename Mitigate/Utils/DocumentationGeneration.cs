@@ -19,7 +19,7 @@ namespace Mitigate.Utils
 
             foreach (var mitigationType in AllMitigationTypes)
             {
-                if (mitigationType== "No Mitigation Available")
+                if (mitigationType==MitigationTypes.NoMitigationAvailable)
                         continue;
                 if (!AllMitigationTypesAttack.Contains(mitigationType))
                 {

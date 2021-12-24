@@ -7,9 +7,9 @@ namespace Mitigate.Enumerations
 {
     class ToolBlocked : EnumerationResults
     {
-        string Tool;
-        bool IsBlocked;
-        string Control;
+        readonly string Tool;
+        readonly bool IsBlocked;
+        readonly string Control;
 
         public ToolBlocked(string Tool, bool IsBlocked, string Control)
         {

@@ -1,12 +1,12 @@
 ﻿using Mitigate.Utils;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.OperatingSystemConfiguration
+namespace Mitigate.Enumerations
 {
     class RootCertAdmin : Enumeration
     {
         public override string Name => "Adding new root certificates requires administrative access";
-        public override string MitigationType => "Operating System Configuration";
+        public override string MitigationType => MitigationTypes.OperatingSystemConfiguration;
         public override string MitigationDescription => @"Windows Group Policy can be used to manage root certificates and the Flags value of HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\Root\ProtectedRoots can be set to 1 to prevent non-administrator users from making further root installations into their own HKCU certificate store.";
         public override string EnumerationDescription => "Checks if the addition of new root certificates requires elevated privileges";
 

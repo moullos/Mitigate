@@ -1,16 +1,13 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.CodeSigning
+
+namespace Mitigate.Enumerations
 {
     class SoftwareRestrictionPolicies : Enumeration
     {
         public override string Name => "Software Restriction Policies";
-        public override string MitigationType => "Code Signing";
+        public override string MitigationType => MitigationTypes.CodeSigning;
         public override string MitigationDescription => "Require signed binaries";
         public override string EnumerationDescription => "Checks if and Software Restriction Policies enforce signed binaries";
 

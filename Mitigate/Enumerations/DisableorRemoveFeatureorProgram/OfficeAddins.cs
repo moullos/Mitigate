@@ -1,17 +1,12 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.DisabldorRemoveFeatureorProgram
+namespace Mitigate.Enumerations
 {
     class OfficeAddins : Enumeration
     {
         public override string Name => "Office Addins Restrictions";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Disable Office add-ins. If they are required, follow best practices for securing them by requiring them to be signed and disabling user notification for allowing add-ins. For some add-ins types (WLL, VBA) additional mitigation is likely required as disabling add-ins in the Office Trust Center does not disable WLL nor does it prevent VBA code from executing.";
         public override string EnumerationDescription => "Checks if Office add-ins are disabled";
 

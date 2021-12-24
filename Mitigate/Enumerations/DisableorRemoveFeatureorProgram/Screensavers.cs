@@ -1,17 +1,13 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Mitigate.Enumerations.DisabledorRemoveFeatureorProgram
+
+namespace Mitigate.Enumerations
 {
     class ScreenSavers : Enumeration
     {
         public override string Name => "ScreenSaver disabled";
-        public override string MitigationType => "Disable or Remove Feature or Program";
+        public override string MitigationType => MitigationTypes.DisableOrRemoveFeatureOrProgram;
         public override string MitigationDescription => "Use Group Policy to disable screensavers if they are unnecessary.";
         public override string EnumerationDescription => "Checks if ScreenSavers are disabled";
 

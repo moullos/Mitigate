@@ -1,12 +1,12 @@
 ﻿using Mitigate.Utils;
 using System.Collections.Generic;
 
-namespace Mitigate.Enumerations.NoMitigation
+namespace Mitigate.Enumerations
 {
     class NoMitigation : Enumeration
     {
         public override string Name => "No Mitigation Available";
-        public override string MitigationType => "No Mitigation Available";
+        public override string MitigationType => MitigationTypes.NoMitigationAvailable;
         public override string MitigationDescription => "This type of attack technique cannot be easily mitigated with preventive controls since it is based on the abuse of system features";
         public override string EnumerationDescription => "Dummy enumeration to populate the navigator for techniques which cannot be mitigated";
 
