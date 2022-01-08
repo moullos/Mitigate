@@ -12,14 +12,14 @@ namespace Mitigate.Enumerations
         public abstract string MitigationType { get; }
         public abstract string EnumerationDescription { get; }
         public abstract string[] Techniques { get; }
-        public IEnumerable<EnumerationResults> Results { get; set; }
+        public List<EnumerationResults> Results { get; set; }
 
         public void Execute(Context Context)
         {
             PrintUtils.EnumStart(this);
             try
             {
-                Results = Enumerate(Context);
+                Results = Enumerate(Context).ToList();
                 if (!Results.Any())
                 {
                     Results = NoMitigationDetected();
@@ -55,14 +55,18 @@ namespace Mitigate.Enumerations
 
         }
 
-        private IEnumerable<EnumerationResults> FailedTest(string EnumerationName, string Message)
+        private List<EnumerationResults> FailedTest(string EnumerationName, string Message)
         {
-            yield return new Failed(EnumerationName, Message);
+            var Results = new List<EnumerationResults>();
+            Results.Add(new Failed(EnumerationName, Message));
+            return Results;
         }
 
-        private IEnumerable<EnumerationResults> NoMitigationDetected()
+        private List<EnumerationResults> NoMitigationDetected()
         {
-            yield return new NoMitigationDetected(Name);
+            var Results = new List<EnumerationResults>();
+            Results.Add(new NoMitigationDetected(Name));
+            return Results;
         }
     }
 }

@@ -56,7 +56,7 @@ namespace Mitigate
         public bool showSubtechniques { get; set; }
         public IList<Metadata> metadata { get; set; }
 
-        internal NTechnique(string techniqueID, IEnumerable<Enumeration> techniqueEnumerations)
+        internal NTechnique(string techniqueID, List<Enumeration> techniqueEnumerations)
         {
             this.techniqueID = techniqueID;
             this.enabled = true;
@@ -97,10 +97,15 @@ namespace Mitigate
             }
         }
 
-        private void AddColor(IEnumerable<Enumeration> TechniqueEnumerations)
+        private void AddColor(List<Enumeration> TechniqueEnumerations)
         {
-            var TechniqueResults = TechniqueEnumerations.Select(o => o.Results).Aggregate((i, j) => i.Union(j)).Select(o => o.ToResultType());
+            //var TechniqueResults = TechniqueEnumerations.Select(o => o.Results).ToList().Aggregate((i, j) => i.Union(j)).Select(o => o.ToResultType());
 
+            var TechniqueResults = new List<ResultType>();
+            foreach (var techniqueResults in TechniqueEnumerations.Select(o => o.Results))
+            {
+                TechniqueResults.AddRange(techniqueResults.Select(o=>o.ToResultType()));
+            }
             if (!TechniqueResults.Any())
                 throw new ArgumentException($"Add Color for Technique {this.techniqueID} failed. " +
                     $"Probably a bug. Do you want to try and fix it?");
@@ -231,7 +236,7 @@ namespace Mitigate
         {
             filters.stages = new List<string>();
             filters.platforms = new List<string>();
-            versions = new NavigatorVersion("10", "4.5.1", "4.2");
+            versions = new NavigatorVersion("10", "4.5.1", "4.3");
             name = "Output";
             domain = "mitre-enterprise";
             description = "Output of the Mitig&te project";
@@ -328,7 +333,7 @@ namespace Mitigate
             foreach (var techniqueId in AlltechniqueIds)
             {
                 // Create the technique object
-                var RelevantEnumerations = ExecutedEnumerations.Where(o => o.Techniques.Contains(techniqueId));
+                var RelevantEnumerations = ExecutedEnumerations.Where(o => o.Techniques.Contains(techniqueId)).ToList();
                 var technique = new NTechnique(techniqueId, RelevantEnumerations);
 
                 // Add to the list

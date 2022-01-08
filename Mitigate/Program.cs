@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.DirectoryServices.AccountManagement;
-using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Mitigate.Enumerations;
 using Mitigate.Utils;
 
@@ -64,18 +62,6 @@ namespace Mitigate
             {
                 PrintUtils.Warning("The GenerateDocumentation argument was set. The program will just generated the documentation for enumerations and then exit");
                 AttackCTI Attack = new AttackCTI(AttackUrl);
-                var test = Attack.GetAllMitigationTypes();
-                TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
-                using (var tw = new System.IO.StreamWriter("asdfadsfsad"))
-                {
-
-                foreach (var item in test)
-                {
-                    tw.WriteLine("public const string " + Regex.Replace(textInfo.ToTitleCase(item), @"\s+", "").Replace("/", "").Replace("-", "") + " = " + "\"" + item + "\";");
-
-                }
-                }
-
                 DocumentationGeneration.CreateEnumerationCoveragePerMitigationType(AllEnumerations, Attack, Arguments.GenerateDocumentation);
                 Environment.Exit(0);
             }

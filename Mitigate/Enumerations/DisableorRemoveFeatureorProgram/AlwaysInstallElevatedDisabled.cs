@@ -1,10 +1,5 @@
 ﻿using Mitigate.Utils;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Mitigate.Enumerations.DisableorRemoveFeatureorProgram
 {

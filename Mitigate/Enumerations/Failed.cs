@@ -18,7 +18,7 @@ namespace Mitigate.Enumerations
 
         public override string ToString()
         {
-            return $"{EnumerationName} enumeration has failed";
+            return $"{EnumerationName} enumeration has failed. {Message}";
             //TODO maybe add an option for increased verbosity here
         }
 
