@@ -17,11 +17,14 @@ MITIG&TE is currently under development. Current coverage [here](https://mitre-a
 If you would like to try MITIG&TE you can either compile it yourself or use the [precompiled executable](https://nightly.link/moullos/Mitigate/workflows/dotnet/master/mitigate.exe.zip) provided as part of the CI.  For maximum effectiveness, consider running MITIG&TE as an administrator and specifying a user for the least privilege checks. Ideally, that user should have the same privileges as a typical end-user in your environment. By default, MITIG&TE performs the checks for the last logged-in user. When executed, MITIG&TE will pull the latest ATT&CK information and iterate over all the Windows techniques, pulling information on the mitigations defined for each one. 
 ```
 Mitigate.exe -OutFile=results.json                 # Outputs findings into results.json
-Mitigate.exe -OutFile=results.json -UserName=user1 # Outputs findings into results.json and performs least privileges checks for user1
+Mitigate.exe -OutFile=results.json -UserName=user1 # Outputs findings into results.json and performs least privilege checks for user1
+Mitigate.exe -OutFile=results.csv -UserName=user1  # Outputs findings into results.csv and performs least privilege checks for user1
 ``` 
 ![](https://github.com/moullos/Mitigate/blob/master/examples/Screenshot.png?raw=true)
 
 ## Output
+
+### Att&ck Navigator
 In addition to the console output, MITIG&TE outputs a json file that can be ingested by the [ATT&CK™ Navigator](https://mitre-attack.github.io/attack-navigator/enterprise/) for easy visualisation.  Colour scheme used:
 - ![](https://via.placeholder.com/15/f4a261/000000?text=+) `No mitigations were detected`
 - ![](https://via.placeholder.com/15/e9c46a/000000?text=+) `Some mitigation were detected`
@@ -31,6 +34,9 @@ In addition to the console output, MITIG&TE outputs a json file that can be inge
 ![](https://github.com/moullos/Mitigate/blob/master/examples/Navigator.png?raw=true)
 
 Hovering over a specific technique in the navigator will provide more context on the checks performed. For an interactive example, take a look [here](https://mitre-attack.github.io/attack-navigator/enterprise/#layerURL=https://raw.githubusercontent.com/moullos/Mitigate/master/examples/results.json).
+
+### CSV Output
+A CSV output can also be generated if a CSV is specified as the output file. This is suitable for users looking to get the results in a structured format apart from JSON.
 
 ## Contributing
 Mitig&te is fully modular and enumerations can be added by dropping the relevant file into the logical file location, include in the Visual Studio Solution Explorer and compile. An enumeration template is provided at ./Mitigate/EnumerationTemplate.cs.
@@ -191,6 +197,7 @@ No enumerations defined for the mitigation yet
 No enumerations defined for the mitigation yet
 ### Restrict File and Directory Permissions
 No enumerations defined for the mitigation yet
+
 ### Restrict Library Loading
 No enumerations defined for the mitigation yet
 ### Restrict Registry Permissions

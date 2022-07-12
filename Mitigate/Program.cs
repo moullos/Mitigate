@@ -75,17 +75,6 @@ namespace Mitigate
                 Environment.Exit(0);
             }
 
-            // Instanciate the navigator object
-            Navigator navigator = null;
-            try
-            {
-                navigator = new Navigator();
-            }
-            catch (Exception ex)
-            {
-                PrintUtils.Error(ex.Message);
-                Environment.Exit(1);
-            }
 
             // Check if it's running as admin
             if (!UserUtils.IsItRunningAsAdmin())
@@ -149,16 +138,34 @@ namespace Mitigate
                 }
             }
 
-            // Adding the enumeration results to the navigator
-            navigator.IngestResults(AllEnumerations);
+            if ((Arguments.OutputType == "json" )|| Arguments.ExportCoverage)
+            {
+                // Instanciate the navigator object
+                Navigator navigator = null;
+                try
+                {
+                    navigator = new Navigator();
+                }
+                catch (Exception ex)
+                {
+                    PrintUtils.Error(ex.Message);
+                    Environment.Exit(1);
+                }
 
-            // Exporting the navigator in the json format and outputing
-            navigator.ToJSON(Arguments.OutFile);
+                // Adding the enumeration results to the navigator
+                navigator.IngestResults(AllEnumerations);
+                // Exporting the coverage file for the navigator if it was request in the arguments
+                if (Arguments.ExportCoverage)
+                    navigator.ExportCoverage("Coverage.json");
+                // Exporting the navigator in the json format and outputing
+                navigator.ToJSON(Arguments.OutFile);
+            } 
+            else if (Arguments.OutputType == "csv")
+                CSVGenerator.WriteCSV(AllEnumerations, Arguments.OutFile,'\t');
+                
 
 
-            // Exporting the coverage file for the navigator if it was request in the arguments
-            if (Arguments.ExportCoverage)
-                navigator.ExportCoverage("Coverage.json");
+
         }
     }
 }

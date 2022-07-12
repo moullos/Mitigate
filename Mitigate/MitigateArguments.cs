@@ -20,7 +20,7 @@ namespace Mitigate
         public string Username { get; private set; }
         public string GenerateDocumentation { get; private set; }
         public string GenerateTracker { get; private set; }
-
+        public string OutputType { get; private set; }
 
         public MitigateArguments(string[] args)
         {
@@ -39,6 +39,16 @@ namespace Mitigate
             Debug = ParseAndRemoveSwitchArgument("-Debug", false);
             GenerateDocumentation = ParseAndRemoveKeyValueArgument("-GenerateDocumentation");
             GenerateTracker = ParseAndRemoveKeyValueArgument("-GenerateTracker");
+            OutputType = GetOutPutType(OutFile);
+        }
+
+        private string GetOutPutType(string OutFile)
+        {
+            if (OutFile.EndsWith(".csv"))
+                return "csv";
+            else if (OutFile.EndsWith(".json"))
+                return "json";
+            else throw new Exception($"{OutFile} is not a valid OutFile. Please specify an outfile ending in .json or .csv");
         }
 
         private bool ParseAndRemoveSwitchArgument(string key, bool defaultValue)
@@ -77,8 +87,8 @@ namespace Mitigate
         public static void PrintUsage()
         {
 
-            Console.WriteLine("Usage: Mitigate.exe");
-            Console.WriteLine("       -OutFile=<FileName> : The file name of the resulting navigator layer file. Can be imported into the ATT&CK Navigator for visualisation");
+            Console.WriteLine("Usage:");
+            Console.WriteLine("       -OutFile=<FileName> : The file name of the output. Can be a csv or a json file. If json, it can be imported into the ATT&CK Navigator for visualisation");
             Console.WriteLine("       -UserName=<username> : A user to perform all the least privilege checks for. Default is the last logged in user");
             Console.WriteLine("       -Verbose : Increases the verbosity of the output for some of the enumerations");
             Console.WriteLine("       -ExportCoverage : Outputs a navigator layer file just capturing the technique coverage of the implemented enumerations");

@@ -296,6 +296,17 @@ namespace Mitigate
                 tw.Close();
             }
         }
+
+        /// <summary>
+        /// Method that creates a csv file containing the results
+        /// </summary>
+        /// <param name="filename">Filename to export the JSON to</param>
+        public void ToCSV(string filename)
+        {
+            // CSV Headers
+            // Enumeration Description, Result, Mitigation Description, Mitigation Category
+
+        }
         /// <summary>
         /// Method that creates a JSON file summarizing the technique coverage of the tool. 
         /// </summary>

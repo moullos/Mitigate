@@ -8,7 +8,7 @@ namespace Mitigate.Enumerations
         public override string Name => "No Mitigation Available";
         public override string MitigationType => MitigationTypes.NoMitigationAvailable;
         public override string MitigationDescription => "This type of attack technique cannot be easily mitigated with preventive controls since it is based on the abuse of system features";
-        public override string EnumerationDescription => "Dummy enumeration to populate the navigator for techniques which cannot be mitigated";
+        public override string EnumerationDescription => "No mitigation available";
 
         public override string[] Techniques => new string[] {
             "T1531",
