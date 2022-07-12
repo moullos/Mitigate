@@ -236,7 +236,7 @@ namespace Mitigate
         {
             filters.stages = new List<string>();
             filters.platforms = new List<string>();
-            versions = new NavigatorVersion("10", "4.5.1", "4.3");
+            versions = new NavigatorVersion("11", "4.6.5", "4.3");
             name = "Output";
             domain = "mitre-enterprise";
             description = "Output of the Mitig&te project";
